@@ -5,41 +5,50 @@ import {
   ListOrdered, 
   CheckCircle2, 
   Plus, 
-  Filter, 
-  Trash2, 
-  Share2, 
-  Sparkles, 
-  RotateCcw,
-  Dice5,
-  Dices,
-  Info,
+  Search, 
+  SlidersHorizontal, 
+  Dices, 
+  Settings, 
+  X, 
   Flame,
   ArrowUpDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { loadGames, saveGames, WEIGHT_LABELS } from './utils/storage';
+import { loadGames, saveGames, INITIAL_DEMO_GAMES } from './utils/storage';
 import GameCard from './components/GameCard';
 import GameModal from './components/GameModal';
+import GameDetailSheet from './components/GameDetailSheet';
 import ScheduleModal from './components/ScheduleModal';
 import VerdictModal from './components/VerdictModal';
+import SettingsModal from './components/SettingsModal';
 import CalendarView from './components/CalendarView';
 
 export default function App() {
   const [games, setGames] = useState([]);
   const [isDemoBannerVisible, setIsDemoBannerVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'calendar' | 'played'
   
-  // Filters & sorting for Queue
+  // Navigation: 'queue' (vista principale a tab) | 'calendar'
+  const [mainNav, setMainNav] = useState('queue'); // 'queue' | 'calendar'
+
+  // Sotto-tab della coda: 'to_try' (DA PROVARE) | 'scheduled' (IN AGENDA) | 'played' (PROVATI)
+  const [queueTab, setQueueTab] = useState('to_try'); 
+
+  // Ricerca e filtri
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filterWeight, setFilterWeight] = useState('all');
   const [sortBy, setSortBy] = useState('hype'); // 'hype' | 'date' | 'title'
 
-  // Modals state
+  // Modali e Sheet
   const [isGameModalOpen, setIsGameModalOpen] = useState(false);
   const [editingGame, setEditingGame] = useState(null);
+  const [prefilledDate, setPrefilledDate] = useState('');
+  const [selectedGameDetail, setSelectedGameDetail] = useState(null);
   const [schedulingGame, setSchedulingGame] = useState(null);
   const [verdictGame, setVerdictGame] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Load initial data
+  // Caricamento dati
   useEffect(() => {
     const { games: loaded, isInitialDemo } = loadGames();
     setGames(loaded);
@@ -48,7 +57,7 @@ export default function App() {
     }
   }, []);
 
-  // Sync to localStorage
+  // Sync localStorage
   const updateGamesState = (newGames) => {
     setGames(newGames);
     saveGames(newGames);
@@ -67,30 +76,19 @@ export default function App() {
     updateGamesState(updated);
     setIsGameModalOpen(false);
     setEditingGame(null);
+    setPrefilledDate('');
   };
 
   // Delete game handler
   const handleDeleteGame = (id) => {
-    if (window.confirm('Rimuovere questo gioco dalla comanda?')) {
+    if (window.confirm('Eliminare questo gioco dalla comanda?')) {
       const updated = games.filter(g => g.id !== id);
       updateGamesState(updated);
+      setSelectedGameDetail(null);
     }
   };
 
-  // Clear demo data
-  const handleClearDemo = () => {
-    if (window.confirm('Vuoi svuotare i giochi di esempio e iniziare con la tua lista pulita?')) {
-      updateGamesState([]);
-      setIsDemoBannerVisible(false);
-    }
-  };
-
-  // Dismiss demo banner
-  const handleDismissBanner = () => {
-    setIsDemoBannerVisible(false);
-  };
-
-  // Reset to queue
+  // Move back to queue
   const handleMoveToQueue = (game) => {
     const updated = games.map(g => g.id === game.id ? {
       ...g,
@@ -101,55 +99,68 @@ export default function App() {
       verdict: null
     } : g);
     updateGamesState(updated);
+    setSelectedGameDetail(null);
   };
 
-  // Pick random game from queue
+  // Quick checkbox toggle on card
+  const handleQuickToggle = (game) => {
+    if (game.status === 'played') {
+      // Se già provato, apri la scheda dettaglio per gestire
+      setSelectedGameDetail(game);
+    } else {
+      // Se da provare o in agenda, apri il timbro rapido
+      setVerdictGame(game);
+    }
+  };
+
+  // Random Dice Pick
   const handleRandomPick = () => {
-    const queueList = games.filter(g => g.status === 'queue');
-    if (queueList.length === 0) {
-      alert('Nessun gioco in coda da pescare!');
+    const pool = games.filter(g => g.status === 'queue');
+    if (pool.length === 0) {
+      alert('Nessun gioco in coda "Da Provare" da pescare!');
       return;
     }
-    const randomGame = queueList[Math.floor(Math.random() * queueList.length)];
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
     confetti({ particleCount: 70, spread: 60, origin: { y: 0.5 } });
-    alert(`🎲 ESTRATTO DALLA CODA:\n\n"${randomGame.title.toUpperCase()}"\nRichiesto da: ${randomGame.requestedBy || 'IO'}\n\nÈ il momento di intavolarlo!`);
+    setSelectedGameDetail(chosen);
   };
 
-  // Filtered queue items
-  const queueGames = useMemo(() => {
-    let list = games.filter(g => g.status === 'queue' || g.status === 'scheduled');
-    
+  // Conteggi tab
+  const countToTry = games.filter(g => g.status === 'queue').length;
+  const countScheduled = games.filter(g => g.status === 'scheduled').length;
+  const countPlayed = games.filter(g => g.status === 'played').length;
+
+  // Filtraggio lista
+  const displayedGames = useMemo(() => {
+    let list = games.filter(g => {
+      if (queueTab === 'to_try') return g.status === 'queue';
+      if (queueTab === 'scheduled') return g.status === 'scheduled';
+      if (queueTab === 'played') return g.status === 'played';
+      return true;
+    });
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(g => 
+        g.title.toLowerCase().includes(q) || 
+        (g.requestedBy && g.requestedBy.toLowerCase().includes(q))
+      );
+    }
+
     if (filterWeight !== 'all') {
       list = list.filter(g => g.weight === filterWeight);
     }
 
     return list.sort((a, b) => {
-      if (sortBy === 'hype') {
-        return b.hype - a.hype;
-      } else if (sortBy === 'title') {
-        return a.title.localeCompare(b.title);
-      } else {
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      }
+      if (sortBy === 'hype') return b.hype - a.hype;
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
+      return new Date(b.createdAt) - new Date(a.createdAt);
     });
-  }, [games, filterWeight, sortBy]);
-
-  // Played items
-  const playedGames = useMemo(() => {
-    return games.filter(g => g.status === 'played').sort((a, b) => {
-      const dateA = a.playedAt || a.createdAt;
-      const dateB = b.playedAt || b.createdAt;
-      return new Date(dateB) - new Date(dateA);
-    });
-  }, [games]);
-
-  const scheduledCount = games.filter(g => g.status === 'scheduled').length;
-  const queueCount = games.filter(g => g.status === 'queue').length;
-  const playedCount = games.filter(g => g.status === 'played').length;
+  }, [games, queueTab, searchQuery, filterWeight, sortBy]);
 
   return (
-    <div className="relative min-h-[100dvh] bg-[#F4EFE6] text-[#141414] overflow-x-hidden pb-[calc(76px+env(safe-area-inset-bottom))]">
-      {/* SVG Noise Texture Overlay */}
+    <div className="relative min-h-[100dvh] bg-[#F4EFE6] text-[#141414] overflow-x-hidden pb-28">
+      {/* Noise Texture Overlay leggerissima */}
       <div 
         className="fixed inset-0 pointer-events-none opacity-[0.035] z-50 bg-repeat"
         style={{
@@ -157,185 +168,226 @@ export default function App() {
         }}
       />
 
-      <div className="max-w-md mx-auto px-3.5 pt-4">
-        {/* App Topbar Header */}
-        <header className="mb-4">
-          <div className="bg-paper-card border-[2.5px] border-[#141414] card-tactile p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="bg-risograph-yellow p-1.5 border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center">
-                <CheckSquare size={22} className="stroke-[3] text-[#141414]" />
-              </div>
-              <div>
-                <h1 className="font-display text-2xl tracking-tighter uppercase leading-none text-[#141414]">
-                  PLAYCHECK
-                </h1>
-                <span className="font-mono text-[10px] font-bold text-risograph-cobalt tracking-widest uppercase block -mt-0.5">
-                  BOARD GAME QUEUE & CALENDAR
-                </span>
-              </div>
+      <div className="max-w-md mx-auto px-4">
+        {/* HEADER MINIMALE: ALTEZZA MAX 56px */}
+        <header className="h-14 flex items-center justify-between border-b-2 border-[#141414] py-2 mb-3">
+          {/* Logo compatto a sinistra */}
+          <div 
+            onClick={() => setMainNav('queue')}
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
+            <div className="w-8 h-8 bg-[#FFE600] border-2 border-[#141414] flex items-center justify-center shadow-brutal-sm">
+              <CheckSquare size={18} className="stroke-[3] text-[#141414]" />
             </div>
-
-            {/* Quick action: Dices Pick */}
-            <button
-              onClick={handleRandomPick}
-              className="btn-tactile bg-risograph-lilac text-[#141414] px-2.5 py-1.5 font-mono text-xs font-black flex items-center gap-1"
-              title="Pesca a caso un gioco dalla coda"
-            >
-              <Dices size={16} className="stroke-[2.5]" />
-              <span>PESCA</span>
-            </button>
+            <h1 className="font-display text-xl tracking-tight uppercase text-[#141414]">
+              PLAYCHECK
+            </h1>
           </div>
 
-          {/* Demo Data Banner if first launch */}
-          {isDemoBannerVisible && (
-            <div className="mt-3 bg-risograph-yellow border-2 border-[#141414] shadow-[3px_3px_0px_#141414] p-3 flex items-center justify-between gap-2 animate-fadeIn">
-              <div className="font-mono text-xs text-[#141414] leading-snug">
-                <span className="font-black uppercase block">📦 DATI DI ESEMPIO ATTIVI</span>
-                <span>Puoi esplorare le comande o svuotarle in un colpo.</span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={handleClearDemo}
-                  className="btn-tactile-sm bg-white font-mono text-[11px] font-black uppercase px-2 py-1"
-                >
-                  SVUOTA
-                </button>
-                <button
-                  onClick={handleDismissBanner}
-                  className="btn-tactile-sm bg-[#141414] text-white font-mono text-[11px] font-black uppercase px-2 py-1"
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          )}
+          {/* 2 Bottoni icona quadrati 38x38px a destra */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRandomPick}
+              className="w-[38px] h-[38px] btn-tactile bg-[#FFFDF8] hover:bg-[#FFE600] flex items-center justify-center p-0"
+              title="Pesca a caso un gioco dalla coda"
+              aria-label="Pesca a caso"
+            >
+              <Dices size={18} className="stroke-[2.5]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              className="w-[38px] h-[38px] btn-tactile bg-[#FFFDF8] hover:bg-[#F4EFE6] flex items-center justify-center p-0"
+              title="Impostazioni e Backup"
+              aria-label="Impostazioni"
+            >
+              <Settings size={18} className="stroke-[2.5]" />
+            </button>
+          </div>
         </header>
 
-        {/* Tab Switcher Buttons */}
-        <nav className="grid grid-cols-3 gap-2 mb-4 font-display text-xs">
-          <button
-            onClick={() => setActiveTab('queue')}
-            className={`btn-tactile py-2.5 px-1 uppercase flex flex-col items-center justify-center gap-0.5 ${
-              activeTab === 'queue'
-                ? 'bg-risograph-vermilion text-white'
-                : 'bg-paper-card text-[#141414]'
-            }`}
-          >
-            <div className="flex items-center gap-1 font-bold">
-              <ListOrdered size={15} className="stroke-[2.5]" />
-              <span>IN CODA</span>
+        {/* Micro-striscia discreta per dati di esempio iniziali */}
+        {isDemoBannerVisible && (
+          <div className="mb-3 py-1.5 px-3 bg-[#FFE600] border-2 border-[#141414] flex items-center justify-between font-mono text-[11px] font-bold">
+            <span className="truncate">📦 4 giochi di esempio caricati</span>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              <button 
+                onClick={() => {
+                  updateGamesState([]);
+                  setIsDemoBannerVisible(false);
+                }}
+                className="underline hover:text-[#FF4522]"
+              >
+                Svuota
+              </button>
+              <span>·</span>
+              <button 
+                onClick={() => setIsDemoBannerVisible(false)}
+                className="font-black"
+              >
+                OK
+              </button>
             </div>
-            <span className="font-mono text-[10px] font-black opacity-90">({queueCount})</span>
-          </button>
+          </div>
+        )}
 
-          <button
-            onClick={() => setActiveTab('calendar')}
-            className={`btn-tactile py-2.5 px-1 uppercase flex flex-col items-center justify-center gap-0.5 ${
-              activeTab === 'calendar'
-                ? 'bg-risograph-yellow text-[#141414]'
-                : 'bg-paper-card text-[#141414]'
-            }`}
-          >
-            <div className="flex items-center gap-1 font-bold">
-              <CalendarIcon size={15} className="stroke-[2.5]" />
-              <span>CALENDARIO</span>
-            </div>
-            <span className="font-mono text-[10px] font-black opacity-90">({scheduledCount})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('played')}
-            className={`btn-tactile py-2.5 px-1 uppercase flex flex-col items-center justify-center gap-0.5 ${
-              activeTab === 'played'
-                ? 'bg-risograph-lime text-[#141414]'
-                : 'bg-paper-card text-[#141414]'
-            }`}
-          >
-            <div className="flex items-center gap-1 font-bold">
-              <CheckCircle2 size={15} className="stroke-[2.5]" />
-              <span>PROVATI</span>
-            </div>
-            <span className="font-mono text-[10px] font-black opacity-90">({playedCount})</span>
-          </button>
-        </nav>
-
-        {/* VIEW 1: CODA / LISTA GIOCHI */}
-        {activeTab === 'queue' && (
+        {/* VISTA 1: CODA (DA PROVARE / IN AGENDA / PROVATI) */}
+        {mainNav === 'queue' && (
           <div>
-            {/* Filter and sorting toolbar */}
-            <div className="bg-paper-card border-2 border-[#141414] p-2.5 mb-3.5 shadow-[2px_2px_0px_#141414] flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
-              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
-                <span className="font-bold text-[#141414]/70">PESO:</span>
-                {[
-                  { id: 'all', label: 'TUTTI' },
-                  { id: 'filler', label: 'FILLER' },
-                  { id: 'medio', label: 'MEDIO' },
-                  { id: 'cinghiale', label: 'CINGHIALE' },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFilterWeight(f.id)}
-                    className={`px-2 py-0.5 border border-[#141414] uppercase text-[10px] font-bold ${
-                      filterWeight === f.id
-                        ? 'bg-[#141414] text-white font-black'
-                        : 'bg-paper-bg text-[#141414]'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+            {/* Barra dei 3 Tab Netti a tutta larghezza (stile schedario) */}
+            <div className="grid grid-cols-3 gap-1.5 mb-3 font-display text-xs">
+              <button
+                type="button"
+                onClick={() => setQueueTab('to_try')}
+                className={`py-2 px-1 border-2 border-[#141414] text-center uppercase transition-all select-none ${
+                  queueTab === 'to_try'
+                    ? 'bg-[#141414] text-[#FFFDF8] shadow-brutal-sm font-black'
+                    : 'bg-[#FFFDF8] text-[#141414] hover:bg-[#F4EFE6]'
+                }`}
+              >
+                DA PROVARE ({countToTry})
+              </button>
 
-              <div className="flex items-center gap-1 ml-auto">
-                <ArrowUpDown size={13} className="text-[#141414]/70" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-paper-bg border border-[#141414] p-1 font-mono text-xs font-bold"
-                >
-                  <option value="hype">ORDINA: PIÙ HYPE</option>
-                  <option value="date">ORDINA: RECENTI</option>
-                  <option value="title">ORDINA: ALFABETICO</option>
-                </select>
-              </div>
+              <button
+                type="button"
+                onClick={() => setQueueTab('scheduled')}
+                className={`py-2 px-1 border-2 border-[#141414] text-center uppercase transition-all select-none ${
+                  queueTab === 'scheduled'
+                    ? 'bg-[#FFE600] text-[#141414] shadow-brutal-sm font-black'
+                    : 'bg-[#FFFDF8] text-[#141414] hover:bg-[#F4EFE6]'
+                }`}
+              >
+                IN AGENDA ({countScheduled})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQueueTab('played')}
+                className={`py-2 px-1 border-2 border-[#141414] text-center uppercase transition-all select-none ${
+                  queueTab === 'played'
+                    ? 'bg-[#B8FF2C] text-[#141414] shadow-brutal-sm font-black'
+                    : 'bg-[#FFFDF8] text-[#141414] hover:bg-[#F4EFE6]'
+                }`}
+              >
+                PROVATI ({countPlayed})
+              </button>
             </div>
 
-            {/* List of Game Cards */}
-            {queueGames.length === 0 ? (
-              <div className="bg-paper-card border-2 border-dashed border-[#141414]/40 p-8 text-center card-tactile">
-                <div className="bg-risograph-yellow w-12 h-12 mx-auto border-2 border-[#141414] flex items-center justify-center mb-3">
-                  <Dice5 size={24} className="stroke-[2.5]" />
+            {/* Riga compatta: Ricerca a sinistra + Bottone compatto Filtri a destra */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#141414]/50" />
+                <input
+                  type="text"
+                  placeholder="Cerca titolo o amico..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-2.5 py-1.5 bg-[#FFFDF8] border-2 border-[#141414] font-body text-base text-[#141414] focus:outline-none"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#141414]/50 hover:text-[#141414]"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                className={`btn-tactile-sm px-2.5 py-1.5 font-mono text-xs font-bold flex items-center gap-1.5 shrink-0 ${
+                  isFiltersOpen || filterWeight !== 'all' || sortBy !== 'hype'
+                    ? 'bg-[#FFE600] text-[#141414]'
+                    : 'bg-[#FFFDF8] text-[#141414]'
+                }`}
+              >
+                <SlidersHorizontal size={14} className="stroke-[2.5]" />
+                <span>FILTRI</span>
+              </button>
+            </div>
+
+            {/* Pannellino filtri espandibile solo su richiesta */}
+            {isFiltersOpen && (
+              <div className="bg-[#FFFDF8] border-2 border-[#141414] shadow-brutal p-3 mb-3 space-y-2.5 font-mono text-xs animate-fadeIn">
+                <div>
+                  <span className="font-black uppercase text-[10px] text-[#141414]/60 block mb-1">PESO:</span>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { id: 'all', label: 'TUTTI' },
+                      { id: 'filler', label: 'FILLER' },
+                      { id: 'medio', label: 'MEDIO' },
+                      { id: 'cinghiale', label: 'CINGHIALE' },
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFilterWeight(f.id)}
+                        className={`py-1 border border-[#141414] font-bold text-center text-[10px] uppercase ${
+                          filterWeight === f.id ? 'bg-[#141414] text-white font-black' : 'bg-[#F4EFE6]'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <h3 className="font-display text-lg uppercase text-[#141414] mb-1">
-                  CODA VUOTA
-                </h3>
-                <p className="font-body text-xs text-[#141414]/70 max-w-xs mx-auto mb-4">
-                  Non hai giochi in attesa con questo filtro. Aggiungi il prossimo gioco che vuoi provare premendo il pulsante qui sotto!
+
+                <div className="flex items-center justify-between pt-1 border-t border-[#141414]/20">
+                  <span className="font-black uppercase text-[10px] text-[#141414]/60">ORDINA PER:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="p-1 bg-[#F4EFE6] border border-[#141414] font-mono text-xs font-bold"
+                  >
+                    <option value="hype">PIÙ HYPE</option>
+                    <option value="date">PIÙ RECENTE</option>
+                    <option value="title">ALFABETICO</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* LISTA SCHEDE GIOCO PULITA */}
+            {displayedGames.length === 0 ? (
+              <div className="py-12 text-center border-2 border-dashed border-[#141414]/30 bg-[#FFFDF8] p-6 space-y-3">
+                <p className="font-display text-base uppercase text-[#141414]">
+                  NESSUN GIOCO TROVATO
                 </p>
-                <button
-                  onClick={() => {
-                    setEditingGame(null);
-                    setIsGameModalOpen(true);
-                  }}
-                  className="btn-tactile bg-risograph-vermilion text-white font-display text-sm uppercase px-4 py-2"
-                >
-                  + AGGIUNGI GIOCO
-                </button>
+                <p className="font-body text-xs text-[#141414]/70 max-w-xs mx-auto">
+                  {searchQuery 
+                    ? `Nessun risultato corrispondente a "${searchQuery}".` 
+                    : queueTab === 'to_try'
+                    ? 'La tua coda da provare è vuota. Tocca il tasto rosso "+" in basso per aggiungere il prossimo gioco!'
+                    : queueTab === 'scheduled'
+                    ? 'Nessun gioco in agenda. Seleziona un gioco per fissare una data!'
+                    : 'Nessun gioco ancora timbrato come provato.'}
+                </p>
+                {queueTab === 'to_try' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingGame(null);
+                      setPrefilledDate('');
+                      setIsGameModalOpen(true);
+                    }}
+                    className="btn-tactile bg-[#FF4522] text-white font-display text-xs uppercase px-4 py-2 mt-2"
+                  >
+                    + AGGIUNGI ORA
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
-                {queueGames.map((game) => (
+                {displayedGames.map(game => (
                   <GameCard
                     key={game.id}
                     game={game}
-                    onEdit={(g) => {
-                      setEditingGame(g);
-                      setIsGameModalOpen(true);
-                    }}
-                    onDelete={handleDeleteGame}
-                    onSchedule={(g) => setSchedulingGame(g)}
-                    onMarkPlayed={(g) => setVerdictGame(g)}
-                    onMoveToQueue={handleMoveToQueue}
+                    onSelect={(g) => setSelectedGameDetail(g)}
+                    onQuickToggle={handleQuickToggle}
                   />
                 ))}
               </div>
@@ -343,91 +395,88 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: CALENDARIO & SESSIONI */}
-        {activeTab === 'calendar' && (
+        {/* VISTA 2: CALENDARIO */}
+        {mainNav === 'calendar' && (
           <CalendarView
             games={games}
-            onScheduleGame={(g) => setSchedulingGame(g)}
-            onMarkPlayed={(g) => setVerdictGame(g)}
-            onEditGame={(g) => {
-              setEditingGame(g);
+            onSelectGame={(g) => setSelectedGameDetail(g)}
+            onAddForDate={(dateStr) => {
+              setEditingGame(null);
+              setPrefilledDate(dateStr);
               setIsGameModalOpen(true);
             }}
           />
         )}
-
-        {/* VIEW 3: GIOCHI PROVATI & ARCHIVIO */}
-        {activeTab === 'played' && (
-          <div>
-            <div className="bg-paper-card border-2 border-[#141414] card-tactile p-3 mb-3 flex items-center justify-between">
-              <div>
-                <span className="font-mono text-[10px] font-black uppercase text-risograph-cobalt tracking-widest block">
-                  ALBO D'ORO DELLA CODA
-                </span>
-                <h3 className="font-display text-xl uppercase text-[#141414]">
-                  GIOCHI SMARCATI ({playedGames.length})
-                </h3>
-              </div>
-              <div className="stamp-checked px-2 py-0.5 font-display text-xs bg-risograph-lime border-2 border-[#141414]">
-                ARCHIVIO
-              </div>
-            </div>
-
-            {playedGames.length === 0 ? (
-              <div className="bg-paper-card border-2 border-dashed border-[#141414]/40 p-8 text-center card-tactile">
-                <CheckCircle2 size={36} className="mx-auto mb-2 text-[#141414]/40" />
-                <h4 className="font-display text-base uppercase text-[#141414] mb-1">
-                  ANCORA NESSUN GIOCO PROVATO
-                </h4>
-                <p className="font-body text-xs text-[#141414]/70">
-                  Quando intavoli e completi una partita, premi "PROVATO!" su una scheda per assegnargli il verdetto definitivo!
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {playedGames.map((game) => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    onEdit={(g) => {
-                      setEditingGame(g);
-                      setIsGameModalOpen(true);
-                    }}
-                    onDelete={handleDeleteGame}
-                    onSchedule={(g) => setSchedulingGame(g)}
-                    onMarkPlayed={(g) => setVerdictGame(g)}
-                    onMoveToQueue={handleMoveToQueue}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Floating Bottom Action Bar (Mobile-first dock) */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-[#F4EFE6]/95 border-t-2 border-[#141414] backdrop-blur-none z-40 max-w-md mx-auto">
-        <button
-          onClick={() => {
-            setEditingGame(null);
-            setIsGameModalOpen(true);
-          }}
-          className="w-full btn-tactile bg-risograph-vermilion text-white font-display text-base uppercase py-3 border-2 border-[#141414] flex items-center justify-center gap-2 tracking-wider"
-        >
-          <Plus size={20} className="stroke-[3]" />
-          <span>AGGIUNGI GIOCO ALLA CODA</span>
-        </button>
-      </div>
+      {/* BOTTOM BAR DI NAVIGAZIONE FISSA (Altezza 64px + Safe Area) */}
+      <nav className="fixed bottom-0 left-0 right-0 h-[64px] pb-[env(safe-area-inset-bottom)] bg-[#F4EFE6] border-t-2 border-[#141414] z-40">
+        <div className="max-w-md mx-auto h-full px-6 flex items-center justify-between">
+          {/* Tab 1: CODA */}
+          <button
+            type="button"
+            onClick={() => setMainNav('queue')}
+            className={`flex flex-col items-center justify-center font-display text-[11px] uppercase tracking-wider select-none ${
+              mainNav === 'queue' ? 'text-[#141414] font-black' : 'text-[#141414]/40 hover:text-[#141414]'
+            }`}
+          >
+            <ListOrdered size={20} className="stroke-[2.5] mb-0.5" />
+            <span>CODA</span>
+          </button>
 
-      {/* Modals */}
+          {/* Tab 2: Tasto "+" Centrale Vermiglio */}
+          <button
+            type="button"
+            onClick={() => {
+              setEditingGame(null);
+              setPrefilledDate('');
+              setIsGameModalOpen(true);
+            }}
+            className="w-13 h-13 -mt-5 btn-tactile bg-[#FF4522] text-white rounded-none flex items-center justify-center shadow-brutal p-3 border-2 border-[#141414]"
+            aria-label="Aggiungi nuovo gioco"
+          >
+            <Plus size={26} className="stroke-[3.5]" />
+          </button>
+
+          {/* Tab 3: CALENDARIO */}
+          <button
+            type="button"
+            onClick={() => setMainNav('calendar')}
+            className={`flex flex-col items-center justify-center font-display text-[11px] uppercase tracking-wider select-none ${
+              mainNav === 'calendar' ? 'text-[#141414] font-black' : 'text-[#141414]/40 hover:text-[#141414]'
+            }`}
+          >
+            <CalendarIcon size={20} className="stroke-[2.5] mb-0.5" />
+            <span>CALENDARIO</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* MODALI & BOTTOM SHEETS */}
       <GameModal
         isOpen={isGameModalOpen}
         onClose={() => {
           setIsGameModalOpen(false);
           setEditingGame(null);
+          setPrefilledDate('');
         }}
         onSave={handleSaveGame}
         editingGame={editingGame}
+        prefilledDate={prefilledDate}
+      />
+
+      <GameDetailSheet
+        isOpen={Boolean(selectedGameDetail)}
+        game={selectedGameDetail}
+        onClose={() => setSelectedGameDetail(null)}
+        onSchedule={(g) => setSchedulingGame(g)}
+        onMarkPlayed={(g) => setVerdictGame(g)}
+        onEdit={(g) => {
+          setEditingGame(g);
+          setIsGameModalOpen(true);
+        }}
+        onDelete={handleDeleteGame}
+        onMoveToQueue={handleMoveToQueue}
       />
 
       <ScheduleModal
@@ -437,6 +486,7 @@ export default function App() {
         onSave={(updated) => {
           handleSaveGame(updated);
           setSchedulingGame(null);
+          setSelectedGameDetail(null);
         }}
       />
 
@@ -447,7 +497,17 @@ export default function App() {
         onSave={(updated) => {
           handleSaveGame(updated);
           setVerdictGame(null);
+          setSelectedGameDetail(null);
         }}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        games={games}
+        onRestoreDemo={() => updateGamesState(INITIAL_DEMO_GAMES)}
+        onClearAll={() => updateGamesState([])}
+        onImportData={(imported) => updateGamesState(imported)}
       />
     </div>
   );

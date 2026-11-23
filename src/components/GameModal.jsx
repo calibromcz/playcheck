@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
-import { X, Flame, CheckCircle, Calendar as CalendarIcon, Tag, User, AlignLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Flame } from 'lucide-react';
 
-export default function GameModal({ isOpen, onClose, onSave, editingGame }) {
+export default function GameModal({ isOpen, onClose, onSave, editingGame, prefilledDate }) {
   if (!isOpen) return null;
 
-  const [title, setTitle] = useState(editingGame ? editingGame.title : '');
-  const [requestedBy, setRequestedBy] = useState(editingGame ? editingGame.requestedBy || '' : '');
-  const [weight, setWeight] = useState(editingGame ? editingGame.weight : 'medio');
-  const [hype, setHype] = useState(editingGame ? editingGame.hype : 2);
-  const [status, setStatus] = useState(editingGame ? editingGame.status : 'queue');
-  const [scheduledDate, setScheduledDate] = useState(editingGame ? editingGame.scheduledDate || '' : '');
-  const [sessionNote, setSessionNote] = useState(editingGame ? editingGame.sessionNote || '' : '');
-  const [notes, setNotes] = useState(editingGame ? editingGame.notes || '' : '');
-  const [verdict, setVerdict] = useState(editingGame ? editingGame.verdict || null : null);
+  const [title, setTitle] = useState('');
+  const [requestedBy, setRequestedBy] = useState('');
+  const [weight, setWeight] = useState('medio');
+  const [hype, setHype] = useState(2);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [sessionNote, setSessionNote] = useState('');
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (editingGame) {
+      setTitle(editingGame.title || '');
+      setRequestedBy(editingGame.requestedBy || '');
+      setWeight(editingGame.weight || 'medio');
+      setHype(editingGame.hype || 2);
+      setScheduledDate(editingGame.scheduledDate || '');
+      setSessionNote(editingGame.sessionNote || '');
+      setNotes(editingGame.notes || '');
+    } else {
+      setTitle('');
+      setRequestedBy('');
+      setWeight('medio');
+      setHype(2);
+      setScheduledDate(prefilledDate || '');
+      setSessionNote('');
+      setNotes('');
+    }
+  }, [editingGame, prefilledDate, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -24,240 +42,203 @@ export default function GameModal({ isOpen, onClose, onSave, editingGame }) {
       requestedBy: requestedBy.trim(),
       weight,
       hype: Number(hype),
-      status,
-      scheduledDate: status === 'scheduled' ? scheduledDate : null,
-      sessionNote: status === 'scheduled' ? sessionNote.trim() : '',
+      status: scheduledDate ? 'scheduled' : (editingGame?.status === 'played' ? 'played' : 'queue'),
+      scheduledDate: scheduledDate || null,
+      sessionNote: scheduledDate ? sessionNote.trim() : '',
       notes: notes.trim(),
-      verdict: status === 'played' ? verdict : null,
+      verdict: editingGame ? editingGame.verdict : null,
       createdAt: editingGame ? editingGame.createdAt : new Date().toISOString(),
-      playedAt: status === 'played' ? (editingGame?.playedAt || new Date().toISOString()) : null
+      playedAt: editingGame ? editingGame.playedAt : null
     };
 
     onSave(gameData);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#141414]/75 backdrop-blur-none animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#141414]/65 animate-fadeIn"
+      onClick={onClose}
+    >
       <div 
-        className="w-full max-w-md bg-paper-card border-[2.5px] border-[#141414] card-tactile max-h-[90dvh] flex flex-col overflow-hidden"
+        className="w-full max-w-md bg-[#FFFDF8] border-t-2 border-[#141414] shadow-brutal max-h-[90dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Comanda */}
-        <div className="flex items-center justify-between p-3.5 bg-risograph-yellow border-b-[2.5px] border-[#141414]">
-          <div className="flex items-center gap-2">
-            <span className="font-display text-lg uppercase tracking-tight text-[#141414]">
-              {editingGame ? 'MODIFICA SCHEDA' : 'NUOVA COMANDA GIOCO'}
-            </span>
-          </div>
+        {/* Handle bar */}
+        <div className="w-12 h-1 bg-[#141414]/30 mx-auto rounded-full mt-2.5 mb-1" />
+
+        {/* Top Header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#141414]/20">
+          <h2 className="font-display text-base uppercase tracking-tight text-[#141414]">
+            {editingGame ? 'MODIFICA GIOCO' : 'NUOVO GIOCO IN CODA'}
+          </h2>
           <button 
-            type="button"
-            onClick={onClose}
-            className="btn-tactile-sm bg-white p-1 text-[#141414]"
+            type="button" 
+            onClick={onClose} 
+            className="btn-tactile-sm bg-[#F4EFE6] p-1.5"
+            aria-label="Chiudi"
           >
-            <X size={18} className="stroke-[3]" />
+            <X size={18} className="stroke-[2.5]" />
           </button>
         </div>
 
-        {/* Form Body with Scroll */}
-        <form onSubmit={handleSubmit} className="p-4 overflow-y-auto space-y-4">
+        {/* Form Body con Scroll fluido */}
+        <form onSubmit={handleSubmit} className="p-4 overflow-y-auto space-y-4 pb-6">
           {/* Titolo Gioco */}
           <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
+            <label className="block font-mono text-[11px] font-black uppercase text-[#141414] mb-1">
               TITOLO DEL GIOCO *
             </label>
             <input
               type="text"
               required
+              autoFocus={!editingGame}
               placeholder="Es. Ark Nova, Scout, Dune..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-2.5 bg-paper-bg border-2 border-[#141414] font-body font-semibold text-[#141414] focus:outline-none focus:ring-2 focus:ring-risograph-cobalt"
+              className="w-full p-2.5 bg-[#F4EFE6] border-2 border-[#141414] font-body text-base text-[#141414] focus:outline-none"
             />
           </div>
 
-          {/* Chi lo propone / Proprietario */}
+          {/* Chi lo propone */}
           <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-              RICHIESTO DA / PROPRIETARIO
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Es. Marco, Gruppo, Mio, Circolo..."
-                value={requestedBy}
-                onChange={(e) => setRequestedBy(e.target.value)}
-                className="w-full p-2 bg-paper-bg border-2 border-[#141414] font-body text-sm text-[#141414] focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setRequestedBy('Mio')}
-                className="btn-tactile-sm bg-risograph-lilac px-3 font-mono text-xs font-black"
-              >
-                MIO
-              </button>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-mono text-[11px] font-black uppercase text-[#141414]">
+                CHI LO PROPONE
+              </label>
+              <div className="flex gap-1">
+                {['Mio', 'Gruppo'].map((quick) => (
+                  <button
+                    key={quick}
+                    type="button"
+                    onClick={() => setRequestedBy(quick)}
+                    className="font-mono text-[10px] font-bold px-1.5 py-0.5 border border-[#141414] bg-[#F4EFE6]"
+                  >
+                    {quick}
+                  </button>
+                ))}
+              </div>
             </div>
+            <input
+              type="text"
+              placeholder="Es. Marco, Elena, Mio..."
+              value={requestedBy}
+              onChange={(e) => setRequestedBy(e.target.value)}
+              className="w-full p-2 bg-[#F4EFE6] border-2 border-[#141414] font-body text-base text-[#141414] focus:outline-none"
+            />
           </div>
 
-          {/* Complessità (Weight) */}
+          {/* Peso (3 bottoni affiancati) */}
           <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
+            <label className="block font-mono text-[11px] font-black uppercase text-[#141414] mb-1">
               PESO / COMPLESSITÀ
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: 'filler', label: 'FILLER', sub: '<30m', bg: 'bg-risograph-lime' },
-                { id: 'medio', label: 'MEDIO', sub: '45-90m', bg: 'bg-risograph-yellow' },
-                { id: 'cinghiale', label: 'CINGHIALE', sub: '90m+', bg: 'bg-risograph-vermilion text-white' },
+                { id: 'filler', label: 'FILLER' },
+                { id: 'medio', label: 'MEDIO' },
+                { id: 'cinghiale', label: 'CINGHIALE' },
               ].map((w) => (
                 <button
                   key={w.id}
                   type="button"
                   onClick={() => setWeight(w.id)}
-                  className={`btn-tactile-sm p-2 text-center font-mono text-xs border-2 border-[#141414] flex flex-col items-center justify-center ${
-                    weight === w.id 
-                      ? `${w.bg} ring-2 ring-[#141414] font-black` 
-                      : 'bg-paper-bg text-[#141414] opacity-75'
+                  className={`btn-tactile-sm py-2 font-mono text-xs border-2 border-[#141414] text-center ${
+                    weight === w.id
+                      ? 'bg-[#141414] text-white font-black'
+                      : 'bg-[#F4EFE6] text-[#141414]'
                   }`}
                 >
-                  <span className="font-bold uppercase leading-none">{w.label}</span>
-                  <span className="text-[10px] opacity-80">{w.sub}</span>
+                  {w.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Livello di Hype */}
+          {/* Hype (3 bottoni affiancati con fiamme) */}
           <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-              LIVELLO DI HYPE (VOGLIA DI PROVARLO)
+            <label className="block font-mono text-[11px] font-black uppercase text-[#141414] mb-1">
+              LIVELLO DI HYPE
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { level: 1, label: 'CURIOSO', flames: 1 },
-                { level: 2, label: 'ALTO', flames: 2 },
-                { level: 3, label: 'MUST PLAY', flames: 3 },
+                { level: 1, label: 'NORMALE', emoji: '🔥' },
+                { level: 2, label: 'ALTO', emoji: '🔥🔥' },
+                { level: 3, label: 'MUST PLAY', emoji: '🔥🔥🔥' },
               ].map((h) => (
                 <button
                   key={h.level}
                   type="button"
                   onClick={() => setHype(h.level)}
-                  className={`btn-tactile-sm p-2 font-mono text-xs border-2 border-[#141414] flex flex-col items-center justify-center gap-1 ${
-                    hype === h.level ? 'bg-risograph-vermilion text-white font-black' : 'bg-paper-bg text-[#141414]'
+                  className={`btn-tactile-sm py-2 font-mono text-xs border-2 border-[#141414] text-center flex flex-col items-center justify-center ${
+                    hype === h.level
+                      ? 'bg-[#FF4522] text-white font-black'
+                      : 'bg-[#F4EFE6] text-[#141414]'
                   }`}
                 >
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: h.flames }).map((_, i) => (
-                      <Flame key={i} size={14} className={hype === h.level ? 'fill-white stroke-white' : 'fill-risograph-vermilion text-risograph-vermilion'} />
-                    ))}
-                  </div>
-                  <span>{h.label}</span>
+                  <span className="text-xs leading-none">{h.emoji}</span>
+                  <span className="text-[10px] mt-0.5">{h.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Stato del gioco */}
-          <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-              STATO SCHEDA
-            </label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'queue', label: 'IN CODA', bg: 'bg-paper-bg' },
-                { id: 'scheduled', label: 'PIANIFICATO', bg: 'bg-risograph-yellow' },
-                { id: 'played', label: 'PROVATO', bg: 'bg-risograph-lime' }
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setStatus(s.id)}
-                  className={`btn-tactile-sm p-2 font-mono text-xs border-2 border-[#141414] ${
-                    status === s.id ? `${s.bg} font-black ring-2 ring-[#141414]` : 'bg-white/50 text-[#141414]'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Campi condizionali per PIANIFICATO */}
-          {status === 'scheduled' && (
-            <div className="p-3 bg-risograph-yellow/20 border-2 border-[#141414] space-y-2.5">
-              <div>
-                <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-                  DATA SESSIONE
-                </label>
-                <input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full p-2 bg-white border-2 border-[#141414] font-mono text-sm text-[#141414]"
-                />
-              </div>
-              <div>
-                <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-                  DETTAGLI LOGISTICI
-                </label>
-                <input
-                  type="text"
-                  placeholder="Es. Da Paolo ore 21:00, portare bustine..."
-                  value={sessionNote}
-                  onChange={(e) => setSessionNote(e.target.value)}
-                  className="w-full p-2 bg-white border-2 border-[#141414] font-body text-sm"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Campi condizionali per PROVATO (Verdetto) */}
-          {status === 'played' && (
-            <div className="p-3 bg-risograph-lime/20 border-2 border-[#141414] space-y-2">
-              <label className="block font-mono text-xs font-black uppercase text-[#141414]">
-                TIMBRO VERDETTO
+          {/* Data Pianificata (opzionale) */}
+          <div className="p-3 bg-[#FFE600]/20 border border-[#141414]/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-mono text-[11px] font-black uppercase text-[#141414]">
+                METTI IN AGENDA (OPZIONALE)
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'top', label: 'TOP / DA AVERE', bg: 'bg-risograph-lime' },
-                  { id: 'ok', label: 'OK / CARINO', bg: 'bg-risograph-yellow' },
-                  { id: 'passo', label: 'PASSO', bg: 'bg-risograph-vermilion text-white' },
-                ].map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setVerdict(v.id)}
-                    className={`btn-tactile-sm p-2 font-mono text-xs text-center border-2 border-[#141414] ${
-                      verdict === v.id ? `${v.bg} font-black ring-2 ring-[#141414]` : 'bg-white text-[#141414]'
-                    }`}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
+              {scheduledDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScheduledDate('');
+                    setSessionNote('');
+                  }}
+                  className="font-mono text-[10px] text-[#FF4522] font-bold"
+                >
+                  AZZERA DATA
+                </button>
+              )}
             </div>
-          )}
+            <input
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              className="w-full p-2 bg-[#FFFDF8] border-2 border-[#141414] font-mono text-base text-[#141414]"
+            />
+            {scheduledDate && (
+              <input
+                type="text"
+                placeholder="Note logistica (es. Da Paolo ore 21)..."
+                value={sessionNote}
+                onChange={(e) => setSessionNote(e.target.value)}
+                className="w-full p-2 bg-[#FFFDF8] border-2 border-[#141414] font-body text-base"
+              />
+            )}
+          </div>
 
-          {/* Note generali */}
+          {/* Note compatte opzionali */}
           <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-              NOTE / PROMEMORIA REGOLAMENTO
+            <label className="block font-mono text-[11px] font-black uppercase text-[#141414] mb-1">
+              NOTE / PROMEMORIA (OPZIONALE)
             </label>
             <textarea
               rows={2}
-              placeholder="Note di acquisto, espansioni da includere, player count ideale..."
+              placeholder="Regolamento, espansioni, player count ideale..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-2 bg-paper-bg border-2 border-[#141414] font-body text-sm text-[#141414] focus:outline-none"
+              className="w-full p-2 bg-[#F4EFE6] border-2 border-[#141414] font-body text-base text-[#141414] focus:outline-none"
             />
           </div>
 
-          {/* Pulsante Submit */}
+          {/* Bottone Finale Fisso */}
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full btn-tactile bg-risograph-vermilion text-white font-display text-base uppercase py-3 border-2 border-[#141414] tracking-wider"
+              className="w-full btn-tactile bg-[#FF4522] text-white font-display text-base uppercase py-3 tracking-wider"
             >
-              {editingGame ? 'SALVA MODIFICHE' : 'REGISTRA IN CODA'}
+              {editingGame ? 'SALVA MODIFICHE' : 'SALVA IN CODA'}
             </button>
           </div>
         </form>
