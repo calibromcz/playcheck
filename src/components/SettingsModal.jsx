@@ -22,7 +22,7 @@ export default function SettingsModal({
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `playcheck_v2_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute("download", `playcheck_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -40,7 +40,7 @@ export default function SettingsModal({
           const importedGames = Array.isArray(parsed) ? parsed : (parsed.games || []);
           const importedEvents = parsed.events || [];
           onImportData({ games: importedGames, events: importedEvents });
-          alert(`Backup importato: ${importedGames.length} giochi e ${importedEvents.length} eventi!`);
+          alert(`Backup importato con successo: ${importedGames.length} giochi e ${importedEvents.length} eventi!`);
           onClose();
         } else {
           alert("Formato file JSON non valido.");
@@ -53,46 +53,46 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#141414]/65 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/35 backdrop-blur-[2px] animate-fadeIn">
       <div 
-        className="w-full max-w-md bg-[#FFFDF8] border-t-2 sm:border-2 border-[#141414] shadow-brutal p-4 space-y-4"
+        className="w-full max-w-md bg-[#FFFFFF] rounded-t-3xl sm:rounded-2xl shadow-[0_-8px_24px_rgba(28,25,23,0.08)] p-5 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-3 border-b-2 border-[#141414]">
-          <h3 className="font-display text-lg font-bold uppercase tracking-tight text-[#141414]">
-            IMPOSTAZIONI & BACKUP
+        <div className="flex items-center justify-between pb-3 border-b border-[#E4DFD3]">
+          <h3 className="font-serif text-[19px] font-bold text-[#1C1917]">
+            Impostazioni & Dati
           </h3>
           <button 
             type="button" 
             onClick={onClose} 
-            className="btn-tactile-sm bg-[#F4EFE6] p-1.5"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716C] hover:bg-[#EFECE4] hover:text-[#1C1917]"
             aria-label="Chiudi"
           >
-            <X size={18} className="stroke-[2.5]" />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-2.5 font-mono text-xs">
+        <div className="space-y-2 text-xs">
           {/* Esporta Backup JSON */}
           <button
             type="button"
             onClick={handleExportJSON}
-            className="w-full btn-tactile bg-[#F4EFE6] hover:bg-[#FFE600] text-[#141414] py-3 px-3 flex items-center justify-between font-bold"
+            className="w-full py-3 px-3.5 rounded-xl border border-[#E4DFD3] bg-[#F6F4EF] hover:bg-[#EFECE4] text-[#1C1917] flex items-center justify-between font-semibold transition-colors"
           >
-            <div className="flex items-center gap-2">
-              <Download size={16} />
-              <span>ESPORTA BACKUP JSON</span>
+            <div className="flex items-center gap-2.5">
+              <Download size={16} className="text-[#1B4D3E]" />
+              <span>Esporta backup JSON</span>
             </div>
-            <span className="text-[11px] text-[#141414]/60">
+            <span className="text-[11px] text-[#78716C] font-normal">
               ({games.length} giochi, {events.length} eventi)
             </span>
           </button>
 
           {/* Importa Backup JSON */}
-          <label className="w-full btn-tactile bg-[#F4EFE6] hover:bg-[#B8FF2C] text-[#141414] py-3 px-3 flex items-center justify-between font-bold cursor-pointer">
-            <div className="flex items-center gap-2">
-              <Upload size={16} />
-              <span>IMPORTA BACKUP JSON</span>
+          <label className="w-full py-3 px-3.5 rounded-xl border border-[#E4DFD3] bg-[#F6F4EF] hover:bg-[#EFECE4] text-[#1C1917] flex items-center justify-between font-semibold cursor-pointer transition-colors">
+            <div className="flex items-center gap-2.5">
+              <Upload size={16} className="text-[#1B4D3E]" />
+              <span>Importa file JSON</span>
             </div>
             <input 
               type="file" 
@@ -111,10 +111,10 @@ export default function SettingsModal({
                 onClose();
               }
             }}
-            className="w-full btn-tactile bg-[#F4EFE6] text-[#141414] py-3 px-3 flex items-center gap-2 font-bold"
+            className="w-full py-3 px-3.5 rounded-xl border border-[#E4DFD3] bg-[#FFFFFF] hover:bg-[#F6F4EF] text-[#78716C] hover:text-[#1C1917] flex items-center gap-2.5 font-medium transition-colors"
           >
             <Info size={16} />
-            <span>RICARICA DATI DI ESEMPIO</span>
+            <span>Ricarica dati di esempio</span>
           </button>
 
           {/* Svuota Tutto */}
@@ -126,15 +126,15 @@ export default function SettingsModal({
                 onClose();
               }
             }}
-            className="w-full btn-tactile bg-[#F4EFE6] hover:bg-[#FF4522] hover:text-white text-[#FF4522] py-3 px-3 flex items-center gap-2 font-bold transition-colors"
+            className="w-full py-3 px-3.5 rounded-xl border border-[#FEE2E2] bg-[#FFFFFF] hover:bg-[#FEE2E2] text-[#DC2626] flex items-center gap-2.5 font-medium transition-colors"
           >
             <Trash2 size={16} />
-            <span>SVUOTA TUTTO IL DATABASE</span>
+            <span>Svuota tutto il database locale</span>
           </button>
         </div>
 
-        <div className="pt-2 text-center font-mono text-[11px] text-[#141414]/50">
-          PlayCheck v2 · 100% Local-First
+        <div className="pt-1 text-center text-[11px] text-[#78716C]">
+          PlayCheck · 100% Local-First
         </div>
       </div>
     </div>

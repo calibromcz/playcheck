@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, RotateCcw, ExternalLink } from 'lucide-react';
+import { X, Star, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { getBggLink, RATING_LABELS } from '../utils/storage';
+import { RATING_LABELS } from '../utils/storage';
 
 const REVIEW_PROMPTS = [
   'Cosa mi è piaciuto',
@@ -37,7 +37,7 @@ export default function ReviewSheet({
   const handleSave = (e) => {
     e.preventDefault();
     if (rating >= 4) {
-      confetti({ particleCount: 60, spread: 55, origin: { y: 0.6 } });
+      confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
     }
 
     onSaveReview({
@@ -50,21 +50,21 @@ export default function ReviewSheet({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#141414]/65 animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 backdrop-blur-[2px] animate-fadeIn"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md bg-[#FFFDF8] border-t-2 border-[#141414] shadow-brutal p-4 space-y-4 max-h-[92dvh] overflow-y-auto"
+        className="w-full max-w-md bg-[#FFFFFF] rounded-t-3xl shadow-[0_-8px_24px_rgba(28,25,23,0.08)] p-4 space-y-4 max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-12 h-1 bg-[#141414]/30 mx-auto rounded-full -mt-1 mb-1" />
+        <div className="w-10 h-1 bg-[#D6D1C4] mx-auto rounded-full -mt-1 mb-1" />
 
-        <div className="flex items-start justify-between pb-2 border-b-2 border-[#141414]">
+        <div className="flex items-start justify-between pb-3 border-b border-[#E4DFD3]">
           <div>
-            <span className="font-mono text-[10px] font-bold uppercase text-[#141414]/60 block tracking-wider">
-              RECENSIONE & VOTO
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#78716C] block">
+              Recensione & Voto
             </span>
-            <h3 className="font-display text-lg font-bold uppercase tracking-tight text-[#141414] truncate max-w-[280px]">
+            <h3 className="font-serif text-[20px] font-bold text-[#1C1917] truncate max-w-[280px]">
               {game.title}
             </h3>
           </div>
@@ -72,18 +72,18 @@ export default function ReviewSheet({
           <button 
             type="button" 
             onClick={onClose} 
-            className="btn-tactile-sm bg-[#F4EFE6] p-1.5 shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716C] hover:bg-[#EFECE4] hover:text-[#1C1917]"
             aria-label="Chiudi"
           >
-            <X size={18} className="stroke-[2.5]" />
+            <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
-          {/* Selettore Voto a 5 Stelle Grande e Tattile */}
-          <div className="text-center space-y-1.5 p-3 bg-[#F4EFE6] border-2 border-[#141414]">
-            <span className="font-mono text-xs font-black uppercase text-[#141414] block">
-              VALUTAZIONE PERSONALE
+          {/* Selettore Voto a 5 Stelle Grande e Calmo */}
+          <div className="text-center space-y-1.5 p-3.5 bg-[#F6F4EF] rounded-2xl border border-[#E4DFD3]">
+            <span className="text-xs font-medium text-[#78716C] block">
+              Valutazione personale
             </span>
             
             <div className="flex items-center justify-center gap-2 py-1">
@@ -92,30 +92,30 @@ export default function ReviewSheet({
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
-                  className="p-1 hover:scale-125 transition-transform"
+                  className="p-1 hover:scale-115 transition-transform"
                   aria-label={`Vota ${star} stelle`}
                 >
                   <Star
-                    size={32}
-                    className={`stroke-[2.5] transition-colors ${
+                    size={28}
+                    className={`transition-colors ${
                       star <= rating
-                        ? 'fill-[#FFE600] text-[#141414]'
-                        : 'fill-transparent text-[#141414]/30'
+                        ? 'fill-[#D97706] text-[#D97706]'
+                        : 'fill-transparent text-[#D6D1C4]'
                     }`}
                   />
                 </button>
               ))}
             </div>
 
-            <div className="font-display text-sm font-bold uppercase text-[#141414]">
+            <div className="text-sm font-semibold text-[#1C1917]">
               {rating > 0 ? `${rating}/5 — ${RATING_LABELS[rating]}` : 'Tocca le stelle per votare'}
             </div>
           </div>
 
           {/* Chip di Spunti Cliccabili */}
           <div className="space-y-1.5">
-            <span className="font-mono text-[11px] font-bold uppercase text-[#141414]/70 block">
-              SPUNTI PER SCRIVERE (TOCCA PER INSERIRE):
+            <span className="text-[12px] font-medium text-[#78716C] block">
+              Spunti per scrivere (tocca per inserire):
             </span>
             <div className="flex flex-wrap gap-1.5">
               {REVIEW_PROMPTS.map((prompt) => (
@@ -123,7 +123,7 @@ export default function ReviewSheet({
                   key={prompt}
                   type="button"
                   onClick={() => handlePromptClick(prompt)}
-                  className="font-mono text-[11px] font-bold px-2 py-1 bg-[#F4EFE6] hover:bg-[#FFE600] border border-[#141414] transition-colors text-left"
+                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-[#EFECE4] hover:bg-[#E4DFD3] text-[#1C1917] transition-colors text-left"
                 >
                   + {prompt}
                 </button>
@@ -131,30 +131,30 @@ export default function ReviewSheet({
             </div>
           </div>
 
-          {/* Campo Nota Recensione Ampio */}
+          {/* Campo Nota Recensione */}
           <div>
-            <label className="block font-mono text-xs font-black uppercase text-[#141414] mb-1">
-              NOTE & RECENSIONE (AMPIO)
+            <label className="block text-xs font-medium text-[#57534E] mb-1">
+              Note & Recensione
             </label>
             <textarea
               rows={5}
-              placeholder="Scrivi qui cosa ne pensi dopo averlo provato al tavolo..."
+              placeholder="Scrivi qui sensazioni, momenti memorabili o impressioni al tavolo..."
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
-              className="w-full p-3 bg-[#F4EFE6] border-2 border-[#141414] font-body text-base text-[#141414] focus:outline-none"
+              className="w-full p-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
             />
           </div>
 
           {/* Salva Recensione */}
           <button
             type="submit"
-            className="w-full btn-tactile bg-[#B8FF2C] text-[#141414] font-display text-base font-bold uppercase py-3 tracking-wider"
+            className="w-full h-12 rounded-xl bg-[#1B4D3E] hover:bg-[#143A2F] text-white text-[15px] font-semibold active:scale-[0.98] transition-all shadow-sm"
           >
-            SALVA NEL DIARIO
+            Salva nel diario
           </button>
 
           {/* Rimetti in Lista */}
-          <div className="pt-2 text-center">
+          <div className="pt-1 text-center">
             <button
               type="button"
               onClick={() => {
@@ -163,10 +163,10 @@ export default function ReviewSheet({
                   onClose();
                 }
               }}
-              className="font-mono text-xs text-[#141414]/60 hover:text-[#FF4522] inline-flex items-center gap-1 font-bold"
+              className="text-xs text-[#78716C] hover:text-[#DC2626] inline-flex items-center gap-1 font-medium transition-colors"
             >
               <RotateCcw size={13} />
-              <span>Rimetti in Lista da provare</span>
+              <span>Rimetti in lista da provare</span>
             </button>
           </div>
         </form>

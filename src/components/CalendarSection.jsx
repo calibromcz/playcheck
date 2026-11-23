@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Pin, MapPin, Clock, Plus, Share2 } from 'lucide-react';
 
 const MONTH_NAMES = [
-  'GENNAIO', 'FEBBRAIO', 'MARZO', 'APRILE', 'MAGGIO', 'GIUGNO',
-  'LUGLIO', 'AGOSTO', 'SETTEMBRE', 'OTTOBRE', 'NOVEMBRE', 'DICEMBRE'
+  'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
 ];
 
 const DAY_NAMES_FULL = [
-  'DOMENICA', 'LUNEDÌ', 'MARTEDÌ', 'MERCOLEDÌ', 'GIOVEDÌ', 'VENERDÌ', 'SABATO'
+  'Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'
 ];
 
 export default function CalendarSection({ events, onSelectEvent, onPinForDate }) {
@@ -27,14 +27,14 @@ export default function CalendarSection({ events, onSelectEvent, onPinForDate })
     setSelectedDateStr(todayStr);
   };
 
-  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // LUN = 0
+  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Lunedì = 0
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const calendarCells = [];
   for (let i = 0; i < firstDayIndex; i++) calendarCells.push(null);
   for (let day = 1; day <= daysInMonth; day++) calendarCells.push(day);
 
-  // Map events per date
+  // Mappa eventi per data
   const eventsByDate = {};
   events.forEach(evt => {
     if (evt.date) {
@@ -58,82 +58,81 @@ export default function CalendarSection({ events, onSelectEvent, onPinForDate })
   const handleShareWhatsApp = () => {
     if (selectedDayEvents.length === 0) return;
     const lines = [
-      `🎲 *PLAYCHECK — PARTITE IN PROGRAMMA*`,
+      `🎲 *PlayCheck — Partite in programma*`,
       `📅 *${getSelectedDayLabel()}*`,
-      ...selectedDayEvents.map(e => `• *${e.gameTitle}* alle *${e.time || '21:00'}* (${e.location || 'Tavolo da gioco'})${e.notes ? ` — "${e.notes}"` : ''}`),
-      `\nCi siete? 🚀`
+      ...selectedDayEvents.map(e => `• *${e.gameTitle}* alle ${e.time || '21:00'}${e.location ? ` (${e.location})` : ''}${e.notes ? ` — "${e.notes}"` : ''}`),
+      `\nCi vediamo al tavolo! 🌲`
     ];
     navigator.clipboard?.writeText(lines.join('\n'));
-    alert('Programma copiato negli appunti per WhatsApp!');
+    alert('Dettagli della serata copiati negli appunti per WhatsApp!');
   };
 
   return (
-    <div className="space-y-5 animate-fadeIn">
-      {/* Intestazione Sezione Grande */}
+    <div className="space-y-4 animate-fadeIn">
+      {/* Intestazione Sezione Editoriale */}
       <div className="text-center pt-2">
-        <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight text-[#141414]">
-          CALENDARIO
+        <h2 className="font-serif text-[26px] font-bold text-[#1C1917] tracking-tight">
+          Calendario
         </h2>
-        <p className="text-xs font-medium text-[#141414]/60">
-          Tocca un giorno per vedere gli eventi o fissare una partita
+        <p className="text-[13px] text-[#78716C] mt-0.5">
+          Tocca un giorno per scoprire gli appuntamenti o fissare una partita
         </p>
       </div>
 
-      {/* Griglia Calendario Mensile Ampia */}
-      <div className="bg-[#FFFDF8] border-2 border-[#141414] shadow-brutal p-4">
-        {/* Header compatto Mese e tasto OGGI */}
-        <div className="flex items-center justify-between pb-3 mb-3 border-b-2 border-[#141414]">
-          <div className="flex items-center gap-1.5">
+      {/* Card Calendario Mensile Pulita Hobonichi */}
+      <div className="bg-[#FFFFFF] border border-[#E4DFD3] rounded-2xl shadow-[0_2px_8px_rgba(28,25,23,0.04)] p-4">
+        {/* Header Mese & Tasto Oggi */}
+        <div className="flex items-center justify-between pb-3 mb-2 border-b border-[#E4DFD3]">
+          <div className="flex items-center gap-1">
             <button
               onClick={prevMonth}
-              className="w-9 h-9 flex items-center justify-center border-2 border-[#141414] bg-[#F4EFE6] active:translate-x-[1px] active:translate-y-[1px]"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#78716C] hover:text-[#1C1917] hover:bg-[#EFECE4] transition-colors"
               aria-label="Mese precedente"
             >
-              <ChevronLeft size={18} className="stroke-[3]" />
+              <ChevronLeft size={18} />
             </button>
-            <h3 className="font-display text-lg font-bold uppercase tracking-tight text-[#141414] px-2 min-w-[150px] text-center">
+            <h3 className="font-serif text-[17px] font-bold text-[#1C1917] px-2 min-w-[140px] text-center">
               {MONTH_NAMES[month]} {year}
             </h3>
             <button
               onClick={nextMonth}
-              className="w-9 h-9 flex items-center justify-center border-2 border-[#141414] bg-[#F4EFE6] active:translate-x-[1px] active:translate-y-[1px]"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#78716C] hover:text-[#1C1917] hover:bg-[#EFECE4] transition-colors"
               aria-label="Mese successivo"
             >
-              <ChevronRight size={18} className="stroke-[3]" />
+              <ChevronRight size={18} />
             </button>
           </div>
 
           <button
             onClick={goToToday}
-            className="btn-tactile-sm bg-[#FFE600] px-3 py-1 font-mono text-xs font-black uppercase text-[#141414]"
+            className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EFECE4] text-[#1C1917] hover:bg-[#E4DFD3] transition-colors"
           >
-            OGGI
+            Oggi
           </button>
         </div>
 
         {/* Intestazione giorni settimana */}
-        <div className="grid grid-cols-7 gap-1 text-center font-mono text-xs font-bold uppercase pb-2 text-[#141414]/70">
+        <div className="grid grid-cols-7 gap-1 text-center text-[12px] font-medium uppercase text-[#78716C] pb-2">
           <div>L</div>
           <div>M</div>
           <div>M</div>
           <div>G</div>
           <div>V</div>
-          <div className="text-[#FF4522]">S</div>
-          <div className="text-[#FF4522]">D</div>
+          <div className="text-[#D97706]">S</div>
+          <div className="text-[#D97706]">D</div>
         </div>
 
-        {/* Celle Giorno ampie (min-h-[52px], centrati 16px) */}
+        {/* Griglia Giorni */}
         <div className="grid grid-cols-7 gap-1">
           {calendarCells.map((day, idx) => {
             if (!day) {
-              return <div key={`empty-${idx}`} className="min-h-[52px]" />;
+              return <div key={`empty-${idx}`} className="h-11" />;
             }
 
             const cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const isToday = cellDateStr === todayStr;
             const isSelected = cellDateStr === selectedDateStr;
             const dayEvents = eventsByDate[cellDateStr] || [];
-            const hasPinned = dayEvents.some(e => e.pinned);
             const count = dayEvents.length;
 
             return (
@@ -141,39 +140,25 @@ export default function CalendarSection({ events, onSelectEvent, onPinForDate })
                 key={day}
                 type="button"
                 onClick={() => setSelectedDateStr(cellDateStr)}
-                className={`min-h-[52px] border-2 flex flex-col items-center justify-center relative transition-all select-none ${
+                className={`h-11 rounded-xl flex flex-col items-center justify-center relative transition-all select-none ${
                   isSelected
-                    ? 'bg-[#141414] text-[#FFE600] font-black border-[#141414] ring-2 ring-[#FFE600]'
+                    ? 'bg-[#1B4D3E] text-[#FFFFFF] font-bold shadow-sm'
                     : isToday
-                    ? 'border-2 border-[#FF4522] bg-[#FFE600]/25 font-bold text-[#141414]'
-                    : 'border-[#141414]/30 bg-white hover:bg-[#F4EFE6] text-[#141414]'
+                    ? 'ring-1.5 ring-[#1B4D3E] font-semibold text-[#1B4D3E] bg-[#E7F0EC]/50'
+                    : 'text-[#1C1917] hover:bg-[#F6F4EF]'
                 }`}
               >
-                <span className="font-display text-[16px] font-bold leading-none">
+                <span className="text-[14px] leading-none">
                   {day}
                 </span>
 
-                {/* Indicatore visibile di pin o eventi */}
+                {/* Puntino morbido ambra se ci sono eventi */}
                 {count > 0 && (
-                  <div className="flex items-center gap-0.5 mt-1.5">
-                    {hasPinned ? (
-                      <Pin 
-                        size={11} 
-                        className={`stroke-[3] ${isSelected ? 'fill-[#FFE600] text-[#FFE600]' : 'fill-[#FF4522] text-[#FF4522]'}`} 
-                      />
-                    ) : (
-                      <span 
-                        className={`w-2 h-2 rounded-full ${
-                          isSelected ? 'bg-[#FFE600]' : 'bg-[#FF4522]'
-                        }`} 
-                      />
-                    )}
-                    {count > 1 && (
-                      <span className={`font-mono text-[9px] font-bold ${isSelected ? 'text-[#FFE600]' : 'text-[#141414]'}`}>
-                        {count}
-                      </span>
-                    )}
-                  </div>
+                  <span 
+                    className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                      isSelected ? 'bg-[#FFFFFF]' : 'bg-[#D97706]'
+                    }`} 
+                  />
                 )}
               </button>
             );
@@ -181,14 +166,14 @@ export default function CalendarSection({ events, onSelectEvent, onPinForDate })
         </div>
       </div>
 
-      {/* Pannello del Giorno Selezionato */}
-      <div className="bg-[#FFFDF8] border-2 border-[#141414] shadow-brutal p-4 space-y-3">
-        <div className="flex items-center justify-between pb-3 border-b-2 border-[#141414]">
-          <div className="text-left">
-            <span className="font-mono text-[10px] uppercase font-bold text-[#141414]/60 block tracking-wider">
-              DETTAGLIO DATA
+      {/* Sezione del Giorno Selezionato */}
+      <div className="bg-[#FFFFFF] border border-[#E4DFD3] rounded-2xl shadow-[0_2px_8px_rgba(28,25,23,0.04)] p-4 space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-[#E4DFD3]">
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#78716C] block">
+              Sessione del giorno
             </span>
-            <h3 className="font-display text-base font-extrabold uppercase text-[#141414] tracking-tight">
+            <h3 className="font-serif text-[18px] font-bold text-[#1C1917]">
               {getSelectedDayLabel()}
             </h3>
           </div>
@@ -196,72 +181,70 @@ export default function CalendarSection({ events, onSelectEvent, onPinForDate })
           {selectedDayEvents.length > 0 && (
             <button
               onClick={handleShareWhatsApp}
-              className="btn-tactile-sm bg-[#B8FF2C] px-2.5 py-1.5 font-mono text-xs font-bold flex items-center gap-1.5"
-              title="Copia messaggio per WhatsApp"
+              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[#EFECE4] text-[#1C1917] hover:bg-[#E4DFD3] flex items-center gap-1.5 transition-colors"
+              title="Condividi su WhatsApp"
             >
-              <Share2 size={13} className="stroke-[2.5]" />
-              <span>CONDIVIDI</span>
+              <Share2 size={13} className="text-[#1B4D3E]" />
+              <span>Condividi</span>
             </button>
           )}
         </div>
 
-        {/* Lista degli eventi del giorno */}
+        {/* Lista Eventi del Giorno */}
         {selectedDayEvents.length === 0 ? (
           <div className="py-6 text-center space-y-3">
-            <p className="font-mono text-xs uppercase text-[#141414]/60 font-semibold">
-              Nessuna partita programmata per questa data.
+            <p className="text-[13px] text-[#78716C]">
+              Nessun gioco programmato per questa data.
             </p>
             <button
               type="button"
               onClick={() => onPinForDate(selectedDateStr)}
-              className="w-full btn-tactile bg-[#FFE600] font-display text-sm font-bold uppercase py-3 flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl bg-[#1B4D3E] hover:bg-[#143A2F] text-[#FFFFFF] text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm"
             >
-              <Plus size={18} className="stroke-[3]" />
-              <span>+ PINNA SUL CALENDARIO</span>
+              <Plus size={16} />
+              <span>Pinna sul calendario</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {selectedDayEvents.map(evt => (
               <div
                 key={evt.id}
                 onClick={() => onSelectEvent(evt)}
-                className={`p-3 border-2 border-[#141414] flex items-center justify-between cursor-pointer active:translate-x-[1px] active:translate-y-[1px] ${
-                  evt.pinned ? 'bg-[#FFE600]/25' : 'bg-[#F4EFE6]'
-                }`}
+                className="p-3 rounded-xl border border-[#E4DFD3] bg-[#F6F4EF] hover:bg-[#EFECE4] transition-colors flex items-center justify-between cursor-pointer"
               >
-                <div className="space-y-1 min-w-0 pr-2">
+                <div className="space-y-0.5 min-w-0 pr-2">
                   <div className="flex items-center gap-1.5">
-                    {evt.pinned && <Pin size={13} className="fill-[#FF4522] text-[#FF4522] shrink-0" />}
-                    <h4 className="font-display text-[16px] font-bold uppercase text-[#141414] truncate">
+                    {evt.pinned && <Pin size={12} className="fill-[#D97706] text-[#D97706] shrink-0" />}
+                    <h4 className="text-[15px] font-semibold text-[#1C1917] truncate">
                       {evt.gameTitle}
                     </h4>
                   </div>
-                  <div className="flex items-center gap-3 font-mono text-xs text-[#141414]/75">
-                    <span className="flex items-center gap-1">
+                  <div className="flex items-center gap-3 text-[12px] text-[#78716C]">
+                    <span className="flex items-center gap-1 font-medium">
                       <Clock size={12} />
-                      <b>{evt.time || '21:00'}</b>
+                      {evt.time || '21:00'}
                     </span>
                     <span className="flex items-center gap-1 truncate">
-                      <MapPin size={12} />
+                      <MapPin size={12} className="shrink-0" />
                       <span className="truncate">{evt.location || 'Tavolo da gioco'}</span>
                     </span>
                   </div>
                 </div>
 
-                <div className="shrink-0 font-mono text-[11px] font-bold bg-white border border-[#141414] px-2 py-1">
-                  DETTAGLI
-                </div>
+                <span className="text-[12px] font-medium text-[#1B4D3E] bg-[#FFFFFF] border border-[#E4DFD3] rounded-lg px-2 py-1 shrink-0">
+                  Dettagli
+                </span>
               </div>
             ))}
 
             <button
               type="button"
               onClick={() => onPinForDate(selectedDateStr)}
-              className="w-full btn-tactile-sm bg-[#FFFDF8] border-dashed border-[#141414] text-[#141414] font-mono text-xs font-bold uppercase py-2.5 flex items-center justify-center gap-1 mt-2"
+              className="w-full py-2.5 rounded-xl border border-dashed border-[#E4DFD3] text-[13px] font-medium text-[#78716C] hover:text-[#1C1917] hover:bg-[#F6F4EF] flex items-center justify-center gap-1.5 transition-colors mt-2"
             >
-              <Plus size={15} />
-              <span>AGGIUNGI UN'ALTRA PARTITA</span>
+              <Plus size={14} />
+              <span>Aggiungi un'altra partita</span>
             </button>
           </div>
         )}

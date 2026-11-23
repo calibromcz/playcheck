@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, Check, Pin, Trash2, Edit3, ExternalLink } from 'lucide-react';
+import React from 'react';
+import { X, Calendar as CalendarIcon, Check, Pin, Trash2, ExternalLink } from 'lucide-react';
 import { getBggLink, WEIGHT_LABELS } from '../utils/storage';
 
 export default function GameDetailSheet({ 
@@ -9,33 +9,31 @@ export default function GameDetailSheet({
   onToggleCheck, 
   onTogglePin, 
   onScheduleGame, 
-  onEditGame, 
   onDeleteGame 
 }) {
   if (!isOpen || !game) return null;
 
-  const isPlayed = game.status === 'played';
   const weightInfo = WEIGHT_LABELS[game.weight] || WEIGHT_LABELS.medio;
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#141414]/65 animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 backdrop-blur-[2px] animate-fadeIn"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md bg-[#FFFDF8] border-t-2 border-[#141414] shadow-brutal p-4 space-y-4 max-h-[88dvh] overflow-y-auto"
+        className="w-full max-w-md bg-[#FFFFFF] rounded-t-3xl shadow-[0_-8px_24px_rgba(28,25,23,0.08)] p-4 space-y-4 max-h-[88dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-12 h-1 bg-[#141414]/30 mx-auto rounded-full -mt-1 mb-1" />
+        <div className="w-10 h-1 bg-[#D6D1C4] mx-auto rounded-full -mt-1 mb-1" />
 
-        <div className="flex items-start justify-between pb-2 border-b-2 border-[#141414]">
-          <div className="space-y-1 min-w-0 pr-2">
-            <div className="flex items-center gap-1.5 font-mono text-xs text-[#141414]/70">
-              <span className="font-bold uppercase">{weightInfo.label}</span>
+        <div className="flex items-start justify-between pb-3 border-b border-[#E4DFD3]">
+          <div className="space-y-0.5 min-w-0 pr-2">
+            <div className="flex items-center gap-2 text-xs text-[#78716C]">
+              <span className="font-semibold uppercase tracking-wider">{weightInfo.label}</span>
               <span>·</span>
               <span>da {game.requestedBy || 'Io'}</span>
             </div>
-            <h3 className="font-display text-xl font-bold uppercase text-[#141414] truncate leading-tight">
+            <h3 className="font-serif text-[20px] font-bold text-[#1C1917] truncate leading-tight">
               {game.title}
             </h3>
           </div>
@@ -43,32 +41,32 @@ export default function GameDetailSheet({
           <button 
             type="button" 
             onClick={onClose} 
-            className="btn-tactile-sm bg-[#F4EFE6] p-1.5 shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716C] hover:bg-[#EFECE4] hover:text-[#1C1917]"
             aria-label="Chiudi"
           >
-            <X size={18} className="stroke-[2.5]" />
+            <X size={18} />
           </button>
         </div>
 
         {/* Info & Link BGG */}
-        <div className="p-3 bg-[#F4EFE6] border-2 border-[#141414] space-y-2 font-mono text-xs">
+        <div className="p-3.5 bg-[#F6F4EF] rounded-2xl border border-[#E4DFD3] space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-[#141414]/70 uppercase">SCHEDA SU BGG:</span>
+            <span className="font-medium text-[#78716C]">Scheda BoardGameGeek:</span>
             <a
               href={getBggLink(game.title, game.bggUrl)}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2.5 py-1 bg-[#FFE600] border border-[#141414] font-bold text-[#141414] flex items-center gap-1 hover:underline"
+              className="px-2.5 py-1 rounded-lg bg-[#EFECE4] hover:bg-[#E4DFD3] font-medium text-[#1B4D3E] flex items-center gap-1 transition-colors"
             >
-              <span>APRI SU BGG</span>
-              <ExternalLink size={12} />
+              <span>Apri su BGG</span>
+              <ExternalLink size={11} />
             </a>
           </div>
 
-          <div className="flex items-center justify-between pt-1 border-t border-[#141414]/20">
-            <span className="font-bold text-[#141414]/70 uppercase">PRIORITÀ IN ALTO:</span>
-            <span className="font-black text-[#141414]">
-              {game.pinned ? 'SÌ (IN EVIDENZA)' : 'NO'}
+          <div className="flex items-center justify-between pt-2 border-t border-[#E4DFD3]">
+            <span className="font-medium text-[#78716C]">Priorità in alto:</span>
+            <span className="font-semibold text-[#1C1917]">
+              {game.pinned ? 'In evidenza' : 'Normale'}
             </span>
           </div>
         </div>
@@ -82,10 +80,10 @@ export default function GameDetailSheet({
               onToggleCheck(game);
               onClose();
             }}
-            className="w-full btn-tactile bg-[#B8FF2C] text-[#141414] font-display text-sm font-bold uppercase py-3 flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-xl bg-[#1B4D3E] hover:bg-[#143A2F] text-white text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm"
           >
-            <Check size={18} className="stroke-[3]" />
-            <span>SEGNA COME PROVATO (SPOSTA NEL DIARIO)</span>
+            <Check size={18} className="stroke-[2.5]" />
+            <span>Segna come provato (sposta nel Diario)</span>
           </button>
 
           {/* Pinna sul Calendario */}
@@ -95,13 +93,13 @@ export default function GameDetailSheet({
               onScheduleGame(game);
               onClose();
             }}
-            className="w-full btn-tactile bg-[#FFE600] text-[#141414] font-display text-sm font-bold uppercase py-2.5 flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-xl bg-[#EFECE4] hover:bg-[#E4DFD3] text-[#1C1917] text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
           >
-            <CalendarIcon size={16} className="stroke-[2.5]" />
-            <span>PINNA EVENTO SUL CALENDARIO</span>
+            <CalendarIcon size={16} className="text-[#1B4D3E]" />
+            <span>Pinna data sul calendario</span>
           </button>
 
-          {/* Griglia bottoni secondari */}
+          {/* Bottoni secondari */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               type="button"
@@ -109,10 +107,10 @@ export default function GameDetailSheet({
                 onTogglePin(game.id);
                 onClose();
               }}
-              className="btn-tactile bg-[#FFFDF8] font-mono text-xs font-bold uppercase py-2 flex items-center justify-center gap-1.5"
+              className="h-10 rounded-xl border border-[#E4DFD3] bg-[#FFFFFF] hover:bg-[#F6F4EF] text-[#1C1917] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
             >
-              <Pin size={14} className={game.pinned ? "fill-[#FF4522]" : ""} />
-              <span>{game.pinned ? 'TOGLI PIN' : 'METTI PIN'}</span>
+              <Pin size={14} className={game.pinned ? "fill-[#D97706] text-[#D97706]" : "text-[#78716C]"} />
+              <span>{game.pinned ? 'Togli pin' : 'Metti pin'}</span>
             </button>
 
             <button
@@ -123,10 +121,10 @@ export default function GameDetailSheet({
                   onClose();
                 }
               }}
-              className="btn-tactile bg-[#FFFDF8] hover:bg-[#FF4522] hover:text-white text-[#FF4522] font-mono text-xs font-bold uppercase py-2 flex items-center justify-center gap-1.5 transition-colors"
+              className="h-10 rounded-xl border border-[#FEE2E2] bg-[#FFFFFF] hover:bg-[#FEE2E2] text-[#DC2626] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
             >
               <Trash2 size={14} />
-              <span>ELIMINA</span>
+              <span>Elimina</span>
             </button>
           </div>
         </div>

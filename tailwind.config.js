@@ -7,30 +7,40 @@ export default {
   theme: {
     extend: {
       colors: {
-        paper: {
-          bg: '#F4EFE6',
-          card: '#FFFDF8',
-          border: '#141414',
-          ink: '#141414',
+        app: {
+          bg: '#F6F4EF',
+          card: '#FFFFFF',
+          secondary: '#EFECE4',
+          border: '#E4DFD3',
+          borderHover: '#DDD7C9',
+          text: '#1C1917',
+          muted: '#78716C',
+          label: '#57534E',
         },
-        risograph: {
-          vermilion: '#FF4522',
-          yellow: '#FFE600',
-          lime: '#B8FF2C',
-          cobalt: '#2447FF',
-          lilac: '#D7C4FF',
+        forest: {
+          DEFAULT: '#1B4D3E',
+          hover: '#143A2F',
+          soft: '#E7F0EC',
+        },
+        amber: {
+          DEFAULT: '#D97706',
+          soft: '#FEF3C7',
+          dark: '#92400E',
+        },
+        danger: {
+          DEFAULT: '#DC2626',
+          soft: '#FEE2E2',
         }
       },
       fontFamily: {
-        display: ['"Bricolage Grotesque"', 'sans-serif'],
-        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+        serif: ['"Fraunces"', 'serif'],
+        sans: ['"DM Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
-        'brutal-sm': '2px 2px 0px #141414',
-        'brutal': '3px 3px 0px #141414',
-        'brutal-lg': '5px 5px 0px #141414',
-        'brutal-active': '0px 0px 0px #141414',
+        'card': '0 2px 8px rgba(28, 25, 23, 0.04)',
+        'sheet': '0 -8px 24px rgba(28, 25, 23, 0.08)',
+        'btn': '0 1px 3px rgba(28, 25, 23, 0.06)',
       }
     },
   },
