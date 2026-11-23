@@ -1,166 +1,187 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  CheckSquare, 
   Calendar as CalendarIcon, 
-  ListOrdered, 
-  CheckCircle2, 
+  ListChecks, 
+  CalendarClock, 
+  BookOpen, 
   Plus, 
-  Search, 
-  SlidersHorizontal, 
-  Dices, 
   Settings, 
-  X, 
-  Flame,
-  ArrowUpDown
+  Dices,
+  CheckSquare
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { loadGames, saveGames, INITIAL_DEMO_GAMES } from './utils/storage';
-import GameCard from './components/GameCard';
-import GameModal from './components/GameModal';
+import { 
+  loadAppData, 
+  saveGames, 
+  saveEvents, 
+  INITIAL_DEMO_GAMES, 
+  INITIAL_DEMO_EVENTS 
+} from './utils/storage';
+
+import CalendarSection from './components/CalendarSection';
+import ListSection from './components/ListSection';
+import AgendaSection from './components/AgendaSection';
+import DiarySection from './components/DiarySection';
+
+import UniversalAddModal from './components/UniversalAddModal';
+import ReviewSheet from './components/ReviewSheet';
+import EventDetailSheet from './components/EventDetailSheet';
 import GameDetailSheet from './components/GameDetailSheet';
-import ScheduleModal from './components/ScheduleModal';
-import VerdictModal from './components/VerdictModal';
 import SettingsModal from './components/SettingsModal';
-import CalendarView from './components/CalendarView';
 
 export default function App() {
   const [games, setGames] = useState([]);
-  const [isDemoBannerVisible, setIsDemoBannerVisible] = useState(false);
-  
-  // Navigation: 'queue' (vista principale a tab) | 'calendar'
-  const [mainNav, setMainNav] = useState('queue'); // 'queue' | 'calendar'
+  const [events, setEvents] = useState([]);
 
-  // Sotto-tab della coda: 'to_try' (DA PROVARE) | 'scheduled' (IN AGENDA) | 'played' (PROVATI)
-  const [queueTab, setQueueTab] = useState('to_try'); 
+  // Active Tab: 'calendar' | 'list' | 'agenda' | 'diary'
+  const [activeTab, setActiveTab] = useState('list');
 
-  // Ricerca e filtri
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [filterWeight, setFilterWeight] = useState('all');
-  const [sortBy, setSortBy] = useState('hype'); // 'hype' | 'date' | 'title'
+  // Modals & Bottom Sheets
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalTab, setAddModalTab] = useState('game'); // 'game' | 'event'
+  const [addModalDate, setAddModalDate] = useState('');
 
-  // Modali e Sheet
-  const [isGameModalOpen, setIsGameModalOpen] = useState(false);
-  const [editingGame, setEditingGame] = useState(null);
-  const [prefilledDate, setPrefilledDate] = useState('');
-  const [selectedGameDetail, setSelectedGameDetail] = useState(null);
-  const [schedulingGame, setSchedulingGame] = useState(null);
-  const [verdictGame, setVerdictGame] = useState(null);
+  const [selectedGameForDetail, setSelectedGameForDetail] = useState(null);
+  const [selectedGameForReview, setSelectedGameForReview] = useState(null);
+  const [selectedEventForDetail, setSelectedEventForDetail] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Caricamento dati
+  // Toast per annulla spostamento nel Diario
+  const [toastMessage, setToastMessage] = useState(null);
+  const [lastCheckedGameId, setLastCheckedGameId] = useState(null);
+  const toastTimeoutRef = useRef(null);
+
+  // Caricamento Iniziale
   useEffect(() => {
-    const { games: loaded, isInitialDemo } = loadGames();
-    setGames(loaded);
-    if (isInitialDemo) {
-      setIsDemoBannerVisible(true);
-    }
+    const { games: g, events: e } = loadAppData();
+    setGames(g);
+    setEvents(e);
   }, []);
 
-  // Sync localStorage
-  const updateGamesState = (newGames) => {
+  const updateGames = (newGames) => {
     setGames(newGames);
     saveGames(newGames);
   };
 
-  // Add / Edit game handler
-  const handleSaveGame = (gameData) => {
-    const exists = games.some(g => g.id === gameData.id);
+  const updateEvents = (newEvents) => {
+    setEvents(newEvents);
+    saveEvents(newEvents);
+  };
+
+  // Checkbox toggle: spunta e sposta nel Diario
+  const handleToggleCheck = (game) => {
+    const updated = games.map(g => {
+      if (g.id === game.id) {
+        return {
+          ...g,
+          status: 'played',
+          playedAt: new Date().toISOString()
+        };
+      }
+      return g;
+    });
+    updateGames(updated);
+    confetti({ particleCount: 50, spread: 50, origin: { y: 0.7 } });
+
+    // Mostra toast con Annulla per 4 secondi
+    setLastCheckedGameId(game.id);
+    setToastMessage(`"${game.title}" spostato nel Diario!`);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+      setLastCheckedGameId(null);
+    }, 4000);
+  };
+
+  const handleUndoCheck = () => {
+    if (!lastCheckedGameId) return;
+    const updated = games.map(g => {
+      if (g.id === lastCheckedGameId) {
+        return {
+          ...g,
+          status: 'list',
+          playedAt: null
+        };
+      }
+      return g;
+    });
+    updateGames(updated);
+    setToastMessage(null);
+    setLastCheckedGameId(null);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+  };
+
+  // Toggle Pin Gioco
+  const handleTogglePinGame = (gameId) => {
+    const updated = games.map(g => g.id === gameId ? { ...g, pinned: !g.pinned } : g);
+    updateGames(updated);
+  };
+
+  // Toggle Pin Evento
+  const handleTogglePinEvent = (eventId) => {
+    const updated = events.map(e => e.id === eventId ? { ...e, pinned: !e.pinned } : e);
+    updateEvents(updated);
+  };
+
+  // Rimetti gioco dal diario in lista
+  const handleRestoreToList = (gameId) => {
+    const updated = games.map(g => g.id === gameId ? { ...g, status: 'list', playedAt: null } : g);
+    updateGames(updated);
+  };
+
+  // Salva Gioco
+  const handleSaveGame = (newGame) => {
+    const exists = games.some(g => g.id === newGame.id);
     let updated;
     if (exists) {
-      updated = games.map(g => g.id === gameData.id ? gameData : g);
+      updated = games.map(g => g.id === newGame.id ? newGame : g);
     } else {
-      updated = [gameData, ...games];
+      updated = [newGame, ...games];
       confetti({ particleCount: 40, spread: 45, origin: { y: 0.8 } });
     }
-    updateGamesState(updated);
-    setIsGameModalOpen(false);
-    setEditingGame(null);
-    setPrefilledDate('');
+    updateGames(updated);
   };
 
-  // Delete game handler
-  const handleDeleteGame = (id) => {
-    if (window.confirm('Eliminare questo gioco dalla comanda?')) {
-      const updated = games.filter(g => g.id !== id);
-      updateGamesState(updated);
-      setSelectedGameDetail(null);
-    }
-  };
-
-  // Move back to queue
-  const handleMoveToQueue = (game) => {
-    const updated = games.map(g => g.id === game.id ? {
-      ...g,
-      status: 'queue',
-      scheduledDate: null,
-      sessionNote: '',
-      playedAt: null,
-      verdict: null
-    } : g);
-    updateGamesState(updated);
-    setSelectedGameDetail(null);
-  };
-
-  // Quick checkbox toggle on card
-  const handleQuickToggle = (game) => {
-    if (game.status === 'played') {
-      // Se già provato, apri la scheda dettaglio per gestire
-      setSelectedGameDetail(game);
+  // Salva Evento
+  const handleSaveEvent = (newEvent) => {
+    const exists = events.some(e => e.id === newEvent.id);
+    let updated;
+    if (exists) {
+      updated = events.map(e => e.id === newEvent.id ? newEvent : e);
     } else {
-      // Se da provare o in agenda, apri il timbro rapido
-      setVerdictGame(game);
+      updated = [newEvent, ...events];
+      confetti({ particleCount: 45, spread: 45, origin: { y: 0.8 } });
     }
+    updateEvents(updated);
   };
 
-  // Random Dice Pick
+  // Elimina Gioco
+  const handleDeleteGame = (gameId) => {
+    const updated = games.filter(g => g.id !== gameId);
+    updateGames(updated);
+  };
+
+  // Elimina Evento
+  const handleDeleteEvent = (eventId) => {
+    const updated = events.filter(e => e.id !== eventId);
+    updateEvents(updated);
+  };
+
+  // Pesca a caso tra i giochi in lista
   const handleRandomPick = () => {
-    const pool = games.filter(g => g.status === 'queue');
-    if (pool.length === 0) {
-      alert('Nessun gioco in coda "Da Provare" da pescare!');
+    const listGames = games.filter(g => g.status === 'list');
+    if (listGames.length === 0) {
+      alert('Nessun gioco in lista da provare!');
       return;
     }
-    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    const chosen = listGames[Math.floor(Math.random() * listGames.length)];
     confetti({ particleCount: 70, spread: 60, origin: { y: 0.5 } });
-    setSelectedGameDetail(chosen);
+    setSelectedGameForDetail(chosen);
   };
-
-  // Conteggi tab
-  const countToTry = games.filter(g => g.status === 'queue').length;
-  const countScheduled = games.filter(g => g.status === 'scheduled').length;
-  const countPlayed = games.filter(g => g.status === 'played').length;
-
-  // Filtraggio lista
-  const displayedGames = useMemo(() => {
-    let list = games.filter(g => {
-      if (queueTab === 'to_try') return g.status === 'queue';
-      if (queueTab === 'scheduled') return g.status === 'scheduled';
-      if (queueTab === 'played') return g.status === 'played';
-      return true;
-    });
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(g => 
-        g.title.toLowerCase().includes(q) || 
-        (g.requestedBy && g.requestedBy.toLowerCase().includes(q))
-      );
-    }
-
-    if (filterWeight !== 'all') {
-      list = list.filter(g => g.weight === filterWeight);
-    }
-
-    return list.sort((a, b) => {
-      if (sortBy === 'hype') return b.hype - a.hype;
-      if (sortBy === 'title') return a.title.localeCompare(b.title);
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  }, [games, queueTab, searchQuery, filterWeight, sortBy]);
 
   return (
     <div className="relative min-h-[100dvh] bg-[#F4EFE6] text-[#141414] overflow-x-hidden pb-28">
-      {/* Noise Texture Overlay leggerissima */}
+      {/* Noise Texture Overlay */}
       <div 
         className="fixed inset-0 pointer-events-none opacity-[0.035] z-50 bg-repeat"
         style={{
@@ -168,29 +189,27 @@ export default function App() {
         }}
       />
 
+      {/* HEADER COMPATTO (Logo a sinistra, Pesca & Settings a destra) */}
       <div className="max-w-md mx-auto px-4">
-        {/* HEADER MINIMALE: ALTEZZA MAX 56px */}
-        <header className="h-14 flex items-center justify-between border-b-2 border-[#141414] py-2 mb-3">
-          {/* Logo compatto a sinistra */}
+        <header className="h-14 flex items-center justify-between border-b-2 border-[#141414] py-2 mb-2">
           <div 
-            onClick={() => setMainNav('queue')}
+            onClick={() => setActiveTab('list')}
             className="flex items-center gap-2 cursor-pointer select-none"
           >
             <div className="w-8 h-8 bg-[#FFE600] border-2 border-[#141414] flex items-center justify-center shadow-brutal-sm">
               <CheckSquare size={18} className="stroke-[3] text-[#141414]" />
             </div>
-            <h1 className="font-display text-xl tracking-tight uppercase text-[#141414]">
+            <h1 className="font-display text-xl font-extrabold tracking-tight uppercase text-[#141414]">
               PLAYCHECK
             </h1>
           </div>
 
-          {/* 2 Bottoni icona quadrati 38x38px a destra */}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleRandomPick}
               className="w-[38px] h-[38px] btn-tactile bg-[#FFFDF8] hover:bg-[#FFE600] flex items-center justify-center p-0"
-              title="Pesca a caso un gioco dalla coda"
+              title="Pesca a caso un gioco dalla lista"
               aria-label="Pesca a caso"
             >
               <Dices size={18} className="stroke-[2.5]" />
@@ -200,7 +219,7 @@ export default function App() {
               type="button"
               onClick={() => setIsSettingsOpen(true)}
               className="w-[38px] h-[38px] btn-tactile bg-[#FFFDF8] hover:bg-[#F4EFE6] flex items-center justify-center p-0"
-              title="Impostazioni e Backup"
+              title="Impostazioni & Backup"
               aria-label="Impostazioni"
             >
               <Settings size={18} className="stroke-[2.5]" />
@@ -208,306 +227,222 @@ export default function App() {
           </div>
         </header>
 
-        {/* Micro-striscia discreta per dati di esempio iniziali */}
-        {isDemoBannerVisible && (
-          <div className="mb-3 py-1.5 px-3 bg-[#FFE600] border-2 border-[#141414] flex items-center justify-between font-mono text-[11px] font-bold">
-            <span className="truncate">📦 4 giochi di esempio caricati</span>
-            <div className="flex items-center gap-2 shrink-0 ml-2">
-              <button 
-                onClick={() => {
-                  updateGamesState([]);
-                  setIsDemoBannerVisible(false);
-                }}
-                className="underline hover:text-[#FF4522]"
-              >
-                Svuota
-              </button>
-              <span>·</span>
-              <button 
-                onClick={() => setIsDemoBannerVisible(false)}
-                className="font-black"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        )}
+        {/* CONTENUTO VISTE */}
+        <main>
+          {activeTab === 'calendar' && (
+            <CalendarSection
+              events={events}
+              onSelectEvent={(evt) => setSelectedEventForDetail(evt)}
+              onPinForDate={(dateStr) => {
+                setAddModalTab('event');
+                setAddModalDate(dateStr);
+                setIsAddModalOpen(true);
+              }}
+            />
+          )}
 
-        {/* VISTA 1: CODA (DA PROVARE / IN AGENDA / PROVATI) */}
-        {mainNav === 'queue' && (
-          <div>
-            {/* Barra dei 3 Tab Netti a tutta larghezza (stile schedario) */}
-            <div className="grid grid-cols-3 gap-1.5 mb-3 font-display text-xs">
-              <button
-                type="button"
-                onClick={() => setQueueTab('to_try')}
-                className={`py-2 px-1 border-2 border-[#141414] text-center uppercase transition-all select-none ${
-                  queueTab === 'to_try'
-                    ? 'bg-[#141414] text-[#FFFDF8] shadow-brutal-sm font-black'
-                    : 'bg-[#FFFDF8] text-[#141414] hover:bg-[#F4EFE6]'
-                }`}
-              >
-                DA PROVARE ({countToTry})
-              </button>
+          {activeTab === 'list' && (
+            <ListSection
+              games={games}
+              onToggleCheck={handleToggleCheck}
+              onTogglePin={handleTogglePinGame}
+              onSelectGame={(g) => setSelectedGameForDetail(g)}
+              onOpenAddModal={() => {
+                setAddModalTab('game');
+                setAddModalDate('');
+                setIsAddModalOpen(true);
+              }}
+            />
+          )}
 
-              <button
-                type="button"
-                onClick={() => setQueueTab('scheduled')}
-                className={`py-2 px-1 border-2 border-[#141414] text-center uppercase transition-all select-none ${
-                  queueTab === 'scheduled'
-                    ? 'bg-[#FFE600] text-[#141414] shadow-brutal-sm font-black'
-                    : 'bg-[#FFFDF8] text-[#141414] hover:bg-[#F4EFE6]'
-                }`}
-              >
-                IN AGENDA ({countScheduled})
-              </button>
+          {activeTab === 'agenda' && (
+            <AgendaSection
+              events={events}
+              onTogglePinEvent={handleTogglePinEvent}
+              onSelectEvent={(evt) => setSelectedEventForDetail(evt)}
+              onOpenAddEventModal={() => {
+                setAddModalTab('event');
+                setAddModalDate('');
+                setIsAddModalOpen(true);
+              }}
+            />
+          )}
 
-              <button
-                type="button"
-                onClick={() => setQueueTab('played')}
-                className={`py-2 px-1 border-2 border-[#141414] text-center uppercase transition-all select-none ${
-                  queueTab === 'played'
-                    ? 'bg-[#B8FF2C] text-[#141414] shadow-brutal-sm font-black'
-                    : 'bg-[#FFFDF8] text-[#141414] hover:bg-[#F4EFE6]'
-                }`}
-              >
-                PROVATI ({countPlayed})
-              </button>
-            </div>
-
-            {/* Riga compatta: Ricerca a sinistra + Bottone compatto Filtri a destra */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#141414]/50" />
-                <input
-                  type="text"
-                  placeholder="Cerca titolo o amico..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-2.5 py-1.5 bg-[#FFFDF8] border-2 border-[#141414] font-body text-base text-[#141414] focus:outline-none"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#141414]/50 hover:text-[#141414]"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                className={`btn-tactile-sm px-2.5 py-1.5 font-mono text-xs font-bold flex items-center gap-1.5 shrink-0 ${
-                  isFiltersOpen || filterWeight !== 'all' || sortBy !== 'hype'
-                    ? 'bg-[#FFE600] text-[#141414]'
-                    : 'bg-[#FFFDF8] text-[#141414]'
-                }`}
-              >
-                <SlidersHorizontal size={14} className="stroke-[2.5]" />
-                <span>FILTRI</span>
-              </button>
-            </div>
-
-            {/* Pannellino filtri espandibile solo su richiesta */}
-            {isFiltersOpen && (
-              <div className="bg-[#FFFDF8] border-2 border-[#141414] shadow-brutal p-3 mb-3 space-y-2.5 font-mono text-xs animate-fadeIn">
-                <div>
-                  <span className="font-black uppercase text-[10px] text-[#141414]/60 block mb-1">PESO:</span>
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { id: 'all', label: 'TUTTI' },
-                      { id: 'filler', label: 'FILLER' },
-                      { id: 'medio', label: 'MEDIO' },
-                      { id: 'cinghiale', label: 'CINGHIALE' },
-                    ].map(f => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setFilterWeight(f.id)}
-                        className={`py-1 border border-[#141414] font-bold text-center text-[10px] uppercase ${
-                          filterWeight === f.id ? 'bg-[#141414] text-white font-black' : 'bg-[#F4EFE6]'
-                        }`}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#141414]/20">
-                  <span className="font-black uppercase text-[10px] text-[#141414]/60">ORDINA PER:</span>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="p-1 bg-[#F4EFE6] border border-[#141414] font-mono text-xs font-bold"
-                  >
-                    <option value="hype">PIÙ HYPE</option>
-                    <option value="date">PIÙ RECENTE</option>
-                    <option value="title">ALFABETICO</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* LISTA SCHEDE GIOCO PULITA */}
-            {displayedGames.length === 0 ? (
-              <div className="py-12 text-center border-2 border-dashed border-[#141414]/30 bg-[#FFFDF8] p-6 space-y-3">
-                <p className="font-display text-base uppercase text-[#141414]">
-                  NESSUN GIOCO TROVATO
-                </p>
-                <p className="font-body text-xs text-[#141414]/70 max-w-xs mx-auto">
-                  {searchQuery 
-                    ? `Nessun risultato corrispondente a "${searchQuery}".` 
-                    : queueTab === 'to_try'
-                    ? 'La tua coda da provare è vuota. Tocca il tasto rosso "+" in basso per aggiungere il prossimo gioco!'
-                    : queueTab === 'scheduled'
-                    ? 'Nessun gioco in agenda. Seleziona un gioco per fissare una data!'
-                    : 'Nessun gioco ancora timbrato come provato.'}
-                </p>
-                {queueTab === 'to_try' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingGame(null);
-                      setPrefilledDate('');
-                      setIsGameModalOpen(true);
-                    }}
-                    className="btn-tactile bg-[#FF4522] text-white font-display text-xs uppercase px-4 py-2 mt-2"
-                  >
-                    + AGGIUNGI ORA
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {displayedGames.map(game => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    onSelect={(g) => setSelectedGameDetail(g)}
-                    onQuickToggle={handleQuickToggle}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* VISTA 2: CALENDARIO */}
-        {mainNav === 'calendar' && (
-          <CalendarView
-            games={games}
-            onSelectGame={(g) => setSelectedGameDetail(g)}
-            onAddForDate={(dateStr) => {
-              setEditingGame(null);
-              setPrefilledDate(dateStr);
-              setIsGameModalOpen(true);
-            }}
-          />
-        )}
+          {activeTab === 'diary' && (
+            <DiarySection
+              games={games}
+              onOpenReviewSheet={(g) => setSelectedGameForReview(g)}
+              onRestoreToList={handleRestoreToList}
+            />
+          )}
+        </main>
       </div>
 
-      {/* BOTTOM BAR DI NAVIGAZIONE FISSA (Altezza 64px + Safe Area) */}
-      <nav className="fixed bottom-0 left-0 right-0 h-[64px] pb-[env(safe-area-inset-bottom)] bg-[#F4EFE6] border-t-2 border-[#141414] z-40">
-        <div className="max-w-md mx-auto h-full px-6 flex items-center justify-between">
-          {/* Tab 1: CODA */}
+      {/* TOAST TEMPORANEO ANNULLA SPOSTAMENTO (4 SECONDI) */}
+      {toastMessage && (
+        <div className="fixed bottom-24 inset-x-4 max-w-sm mx-auto z-50 bg-[#141414] text-white border-2 border-[#141414] shadow-brutal p-3 flex items-center justify-between animate-fadeIn font-mono text-xs">
+          <span className="truncate pr-2">{toastMessage}</span>
           <button
             type="button"
-            onClick={() => setMainNav('queue')}
-            className={`flex flex-col items-center justify-center font-display text-[11px] uppercase tracking-wider select-none ${
-              mainNav === 'queue' ? 'text-[#141414] font-black' : 'text-[#141414]/40 hover:text-[#141414]'
+            onClick={handleUndoCheck}
+            className="px-2.5 py-1 bg-[#FFE600] text-[#141414] font-black uppercase shrink-0"
+          >
+            ANNULLA
+          </button>
+        </div>
+      )}
+
+      {/* BARRA DI NAVIGAZIONE INFERIORE RIGOROSA A 5 PULSANTI (grid-cols-5, h-[72px]) */}
+      <nav className="fixed bottom-0 inset-x-0 max-w-md mx-auto z-40 bg-[#FFFDF8] border-t-[2.5px] border-[#141414] pb-[env(safe-area-inset-bottom)] select-none">
+        <div className="grid grid-cols-5 items-center h-[72px] px-1 text-center">
+          {/* 1. Calendario */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('calendar')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'calendar'
+                ? 'font-black text-[#141414]'
+                : 'text-[#141414]/50 hover:text-[#141414]'
             }`}
           >
-            <ListOrdered size={20} className="stroke-[2.5] mb-0.5" />
-            <span>CODA</span>
+            <div className={`p-1 rounded-sm ${activeTab === 'calendar' ? 'bg-[#FFE600]' : ''}`}>
+              <CalendarIcon size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="font-display text-[10px] font-bold uppercase tracking-tight mt-0.5">
+              Calendario
+            </span>
           </button>
 
-          {/* Tab 2: Tasto "+" Centrale Vermiglio */}
+          {/* 2. Lista */}
           <button
             type="button"
-            onClick={() => {
-              setEditingGame(null);
-              setPrefilledDate('');
-              setIsGameModalOpen(true);
-            }}
-            className="w-13 h-13 -mt-5 btn-tactile bg-[#FF4522] text-white rounded-none flex items-center justify-center shadow-brutal p-3 border-2 border-[#141414]"
-            aria-label="Aggiungi nuovo gioco"
-          >
-            <Plus size={26} className="stroke-[3.5]" />
-          </button>
-
-          {/* Tab 3: CALENDARIO */}
-          <button
-            type="button"
-            onClick={() => setMainNav('calendar')}
-            className={`flex flex-col items-center justify-center font-display text-[11px] uppercase tracking-wider select-none ${
-              mainNav === 'calendar' ? 'text-[#141414] font-black' : 'text-[#141414]/40 hover:text-[#141414]'
+            onClick={() => setActiveTab('list')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'list'
+                ? 'font-black text-[#141414]'
+                : 'text-[#141414]/50 hover:text-[#141414]'
             }`}
           >
-            <CalendarIcon size={20} className="stroke-[2.5] mb-0.5" />
-            <span>CALENDARIO</span>
+            <div className={`p-1 rounded-sm ${activeTab === 'list' ? 'bg-[#FFE600]' : ''}`}>
+              <ListChecks size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="font-display text-[10px] font-bold uppercase tracking-tight mt-0.5">
+              Lista
+            </span>
+          </button>
+
+          {/* 3. Tasto Centrale + (Colonna 3, 52x52px, rialzato -mt-5) */}
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setAddModalTab(activeTab === 'calendar' || activeTab === 'agenda' ? 'event' : 'game');
+                setAddModalDate('');
+                setIsAddModalOpen(true);
+              }}
+              className="w-[52px] h-[52px] -mt-5 btn-tactile bg-[#FF4522] text-white flex items-center justify-center border-[2.5px] border-[#141414] shadow-brutal shrink-0"
+              aria-label="Aggiungi rapido"
+            >
+              <Plus size={30} className="stroke-[3.5]" />
+            </button>
+          </div>
+
+          {/* 4. Agenda */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('agenda')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'agenda'
+                ? 'font-black text-[#141414]'
+                : 'text-[#141414]/50 hover:text-[#141414]'
+            }`}
+          >
+            <div className={`p-1 rounded-sm ${activeTab === 'agenda' ? 'bg-[#FFE600]' : ''}`}>
+              <CalendarClock size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="font-display text-[10px] font-bold uppercase tracking-tight mt-0.5">
+              Agenda
+            </span>
+          </button>
+
+          {/* 5. Diario */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('diary')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'diary'
+                ? 'font-black text-[#141414]'
+                : 'text-[#141414]/50 hover:text-[#141414]'
+            }`}
+          >
+            <div className={`p-1 rounded-sm ${activeTab === 'diary' ? 'bg-[#FFE600]' : ''}`}>
+              <BookOpen size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="font-display text-[10px] font-bold uppercase tracking-tight mt-0.5">
+              Diario
+            </span>
           </button>
         </div>
       </nav>
 
       {/* MODALI & BOTTOM SHEETS */}
-      <GameModal
-        isOpen={isGameModalOpen}
-        onClose={() => {
-          setIsGameModalOpen(false);
-          setEditingGame(null);
-          setPrefilledDate('');
-        }}
-        onSave={handleSaveGame}
-        editingGame={editingGame}
-        prefilledDate={prefilledDate}
+      <UniversalAddModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSaveGame={handleSaveGame}
+        onSaveEvent={handleSaveEvent}
+        listGames={games.filter(g => g.status === 'list')}
+        initialTab={addModalTab}
+        initialDate={addModalDate}
       />
 
       <GameDetailSheet
-        isOpen={Boolean(selectedGameDetail)}
-        game={selectedGameDetail}
-        onClose={() => setSelectedGameDetail(null)}
-        onSchedule={(g) => setSchedulingGame(g)}
-        onMarkPlayed={(g) => setVerdictGame(g)}
-        onEdit={(g) => {
-          setEditingGame(g);
-          setIsGameModalOpen(true);
+        isOpen={Boolean(selectedGameForDetail)}
+        game={selectedGameForDetail}
+        onClose={() => setSelectedGameForDetail(null)}
+        onToggleCheck={handleToggleCheck}
+        onTogglePin={handleTogglePinGame}
+        onScheduleGame={(g) => {
+          setAddModalTab('event');
+          setAddModalDate('');
+          setIsAddModalOpen(true);
         }}
-        onDelete={handleDeleteGame}
-        onMoveToQueue={handleMoveToQueue}
+        onDeleteGame={handleDeleteGame}
       />
 
-      <ScheduleModal
-        isOpen={Boolean(schedulingGame)}
-        game={schedulingGame}
-        onClose={() => setSchedulingGame(null)}
-        onSave={(updated) => {
-          handleSaveGame(updated);
-          setSchedulingGame(null);
-          setSelectedGameDetail(null);
-        }}
+      <ReviewSheet
+        isOpen={Boolean(selectedGameForReview)}
+        game={selectedGameForReview}
+        onClose={() => setSelectedGameForReview(null)}
+        onSaveReview={(updated) => handleSaveGame(updated)}
+        onRestoreToList={handleRestoreToList}
       />
 
-      <VerdictModal
-        isOpen={Boolean(verdictGame)}
-        game={verdictGame}
-        onClose={() => setVerdictGame(null)}
-        onSave={(updated) => {
-          handleSaveGame(updated);
-          setVerdictGame(null);
-          setSelectedGameDetail(null);
-        }}
+      <EventDetailSheet
+        isOpen={Boolean(selectedEventForDetail)}
+        event={selectedEventForDetail}
+        onClose={() => setSelectedEventForDetail(null)}
+        onTogglePin={handleTogglePinEvent}
+        onDeleteEvent={handleDeleteEvent}
       />
 
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         games={games}
-        onRestoreDemo={() => updateGamesState(INITIAL_DEMO_GAMES)}
-        onClearAll={() => updateGamesState([])}
-        onImportData={(imported) => updateGamesState(imported)}
+        events={events}
+        onRestoreDemo={() => {
+          updateGames(INITIAL_DEMO_GAMES);
+          updateEvents(INITIAL_DEMO_EVENTS);
+        }}
+        onClearAll={() => {
+          updateGames([]);
+          updateEvents([]);
+        }}
+        onImportData={({ games: g, events: e }) => {
+          if (g) updateGames(g);
+          if (e) updateEvents(e);
+        }}
       />
     </div>
   );

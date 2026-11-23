@@ -1,15 +1,28 @@
 import React from 'react';
 import { X, Download, Upload, Trash2, Info } from 'lucide-react';
-import { STORAGE_KEY, INITIAL_DEMO_GAMES } from '../utils/storage';
 
-export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, onClearAll, onImportData }) {
+export default function SettingsModal({ 
+  isOpen, 
+  onClose, 
+  games = [], 
+  events = [], 
+  onRestoreDemo, 
+  onClearAll, 
+  onImportData 
+}) {
   if (!isOpen) return null;
 
   const handleExportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(games, null, 2));
+    const backupData = {
+      version: 'playcheck_v2',
+      exportedAt: new Date().toISOString(),
+      games,
+      events
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `playcheck_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute("download", `playcheck_v2_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -23,15 +36,17 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target.result);
-        if (Array.isArray(parsed)) {
-          onImportData(parsed);
-          alert(`Importati con successo ${parsed.length} giochi!`);
+        if (parsed.games || Array.isArray(parsed)) {
+          const importedGames = Array.isArray(parsed) ? parsed : (parsed.games || []);
+          const importedEvents = parsed.events || [];
+          onImportData({ games: importedGames, events: importedEvents });
+          alert(`Backup importato: ${importedGames.length} giochi e ${importedEvents.length} eventi!`);
           onClose();
         } else {
-          alert("File JSON non valido: atteso un array di giochi.");
+          alert("Formato file JSON non valido.");
         }
       } catch (err) {
-        alert("Errore nel leggere il file JSON.");
+        alert("Errore nella lettura del file JSON.");
       }
     };
     reader.readAsText(file);
@@ -43,9 +58,9 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
         className="w-full max-w-md bg-[#FFFDF8] border-t-2 sm:border-2 border-[#141414] shadow-brutal p-4 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-3 border-b border-[#141414]/20">
-          <h3 className="font-display text-lg uppercase tracking-tight text-[#141414]">
-            IMPOSTAZIONI & DATI
+        <div className="flex items-center justify-between pb-3 border-b-2 border-[#141414]">
+          <h3 className="font-display text-lg font-bold uppercase tracking-tight text-[#141414]">
+            IMPOSTAZIONI & BACKUP
           </h3>
           <button 
             type="button" 
@@ -58,7 +73,7 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
         </div>
 
         <div className="space-y-2.5 font-mono text-xs">
-          {/* Backup Esporta */}
+          {/* Esporta Backup JSON */}
           <button
             type="button"
             onClick={handleExportJSON}
@@ -68,14 +83,16 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
               <Download size={16} />
               <span>ESPORTA BACKUP JSON</span>
             </div>
-            <span className="text-[11px] text-[#141414]/60">({games.length} giochi)</span>
+            <span className="text-[11px] text-[#141414]/60">
+              ({games.length} giochi, {events.length} eventi)
+            </span>
           </button>
 
-          {/* Importa */}
+          {/* Importa Backup JSON */}
           <label className="w-full btn-tactile bg-[#F4EFE6] hover:bg-[#B8FF2C] text-[#141414] py-3 px-3 flex items-center justify-between font-bold cursor-pointer">
             <div className="flex items-center gap-2">
               <Upload size={16} />
-              <span>IMPORTA FILE JSON</span>
+              <span>IMPORTA BACKUP JSON</span>
             </div>
             <input 
               type="file" 
@@ -85,11 +102,11 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
             />
           </label>
 
-          {/* Ripristina demo */}
+          {/* Ripristina Esempi */}
           <button
             type="button"
             onClick={() => {
-              if (window.confirm("Ripristinare i 4 giochi di esempio? I dati attuali verranno sovrascritti.")) {
+              if (window.confirm("Ripristinare i dati di esempio iniziali? I giochi correnti verranno sovrascritti.")) {
                 onRestoreDemo();
                 onClose();
               }
@@ -97,14 +114,14 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
             className="w-full btn-tactile bg-[#F4EFE6] text-[#141414] py-3 px-3 flex items-center gap-2 font-bold"
           >
             <Info size={16} />
-            <span>RICARICA ESEMPI INIZIALI</span>
+            <span>RICARICA DATI DI ESEMPIO</span>
           </button>
 
-          {/* Svuota archivio */}
+          {/* Svuota Tutto */}
           <button
             type="button"
             onClick={() => {
-              if (window.confirm("Sei sicuro di voler eliminare TUTTI i giochi salvati? Operazione irreversibile.")) {
+              if (window.confirm("Sei sicuro di voler eliminare TUTTI i giochi e gli eventi salvati? Operazione irreversibile.")) {
                 onClearAll();
                 onClose();
               }
@@ -117,7 +134,7 @@ export default function SettingsModal({ isOpen, onClose, games, onRestoreDemo, o
         </div>
 
         <div className="pt-2 text-center font-mono text-[11px] text-[#141414]/50">
-          PlayCheck · 100% Local-First · v1.2
+          PlayCheck v2 · 100% Local-First
         </div>
       </div>
     </div>

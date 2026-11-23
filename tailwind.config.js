@@ -22,14 +22,14 @@ export default {
         }
       },
       fontFamily: {
-        display: ['"Archivo Black"', 'Syne', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
-        body: ['"Space Grotesk"', 'sans-serif'],
       },
       boxShadow: {
         'brutal-sm': '2px 2px 0px #141414',
-        'brutal': '4px 4px 0px #141414',
-        'brutal-lg': '6px 6px 0px #141414',
+        'brutal': '3px 3px 0px #141414',
+        'brutal-lg': '5px 5px 0px #141414',
         'brutal-active': '0px 0px 0px #141414',
       }
     },
