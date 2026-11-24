@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, ListChecks, CalendarClock, Pin } from 'lucide-react';
+import { X, Pin } from 'lucide-react';
 
-export default function UniversalAddModal({ 
-  isOpen, 
-  onClose, 
-  onSaveGame, 
-  onSaveEvent, 
+export default function UniversalAddModal({
+  isOpen,
+  onClose,
+  onSaveGame,
+  onSaveEvent,
   listGames = [],
   initialTab = 'game',
-  initialDate = ''
+  initialDate = '',
+  editingGame = null,
 }) {
-  if (!isOpen) return null;
-
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const [gameTitle, setGameTitle] = useState('');
@@ -28,40 +27,62 @@ export default function UniversalAddModal({
   const [eventPinned, setEventPinned] = useState(false);
 
   useEffect(() => {
-    setActiveTab(initialTab);
-    if (initialDate) setEventDate(initialDate);
-  }, [initialTab, initialDate, isOpen]);
+    if (!isOpen) return;
+    if (editingGame) {
+      setActiveTab('game');
+      setGameTitle(editingGame.title || '');
+      setBggUrl(editingGame.bggUrl || '');
+      setRequestedBy(editingGame.requestedBy || '');
+      setWeight(editingGame.weight || 'medio');
+      setGamePinned(Boolean(editingGame.pinned));
+    } else {
+      setActiveTab(initialTab);
+      setGameTitle('');
+      setBggUrl('');
+      setRequestedBy('');
+      setWeight('medio');
+      setGamePinned(false);
+      setEventGameTitle('');
+      setEventDate(initialDate || new Date().toISOString().split('T')[0]);
+      setEventTime('21:00');
+      setEventLocation('');
+      setEventNotes('');
+      setEventPinned(false);
+    }
+  }, [isOpen, initialTab, initialDate, editingGame]);
+
+  if (!isOpen) return null;
 
   const handleCreateGame = (e) => {
     e.preventDefault();
     if (!gameTitle.trim()) return;
 
     onSaveGame({
-      id: 'game_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      id: editingGame
+        ? editingGame.id
+        : 'game_' + Date.now() + Math.random().toString(36).substr(2, 4),
       title: gameTitle.trim(),
       bggUrl: bggUrl.trim(),
       requestedBy: requestedBy.trim(),
       weight,
       pinned: gamePinned,
-      status: 'list',
-      rating: 0,
-      reviewText: '',
-      createdAt: new Date().toISOString(),
-      playedAt: null
+      status: editingGame ? editingGame.status : 'list',
+      rating: editingGame ? editingGame.rating : 0,
+      reviewText: editingGame ? editingGame.reviewText : '',
+      createdAt: editingGame ? editingGame.createdAt : new Date().toISOString(),
+      playedAt: editingGame ? editingGame.playedAt : null,
     });
 
     onClose();
-    setGameTitle('');
-    setBggUrl('');
-    setRequestedBy('');
-    setGamePinned(false);
   };
 
   const handleCreateEvent = (e) => {
     e.preventDefault();
     if (!eventGameTitle.trim()) return;
 
-    const matched = listGames.find(g => g.title.toLowerCase() === eventGameTitle.trim().toLowerCase());
+    const matched = listGames.find(
+      (g) => g.title.toLowerCase() === eventGameTitle.trim().toLowerCase()
+    );
 
     onSaveEvent({
       id: 'evt_' + Date.now() + Math.random().toString(36).substr(2, 4),
@@ -72,114 +93,117 @@ export default function UniversalAddModal({
       location: eventLocation.trim() || 'Tavolo da gioco',
       pinned: eventPinned,
       notes: eventNotes.trim(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
 
     onClose();
-    setEventGameTitle('');
-    setEventLocation('');
-    setEventNotes('');
-    setEventPinned(false);
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 backdrop-blur-[2px] animate-fadeIn"
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
       onClick={onClose}
     >
-      <div 
-        className="w-full max-w-md bg-[#FFFFFF] rounded-t-3xl shadow-[0_-8px_24px_rgba(28,25,23,0.08)] max-h-[92dvh] flex flex-col"
+      <div
+        className="fixed inset-x-0 bottom-0 max-w-[430px] mx-auto bg-white rounded-t-3xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl z-50 max-h-[90dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Maniglia grigia morbida */}
-        <div className="w-10 h-1 bg-[#D6D1C4] mx-auto rounded-full mt-3 mb-1" />
+        {/* Handle */}
+        <div className="w-10 h-1 bg-[#D1D1D6] mx-auto rounded-full mb-4 shrink-0" />
 
-        {/* Header con Switch fra i 2 Tab */}
-        <div className="p-4 border-b border-[#E4DFD3] flex items-center justify-between gap-3">
-          <div className="grid grid-cols-2 gap-2 flex-1 bg-[#EFECE4] p-1 rounded-xl">
+        {/* Segmented Control iOS */}
+        {!editingGame ? (
+          <div className="flex items-center gap-2 mb-4 shrink-0">
+            <div className="bg-[#F0F0F3] p-1 rounded-xl grid grid-cols-2 flex-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('game')}
+                className={`py-2 rounded-lg text-[13px] font-semibold transition-all ${
+                  activeTab === 'game'
+                    ? 'bg-white text-[#111111] shadow-sm'
+                    : 'text-[#6E6E73]'
+                }`}
+              >
+                Gioco in Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('event')}
+                className={`py-2 rounded-lg text-[13px] font-semibold transition-all ${
+                  activeTab === 'event'
+                    ? 'bg-white text-[#111111] shadow-sm'
+                    : 'text-[#6E6E73]'
+                }`}
+              >
+                Evento in Calendario
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setActiveTab('game')}
-              className={`py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'game'
-                  ? 'bg-[#FFFFFF] text-[#1B4D3E] shadow-sm font-bold'
-                  : 'text-[#78716C] hover:text-[#1C1917]'
-              }`}
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[#F0F0F3] flex items-center justify-center text-[#6E6E73] hover:text-[#111111] shrink-0"
+              aria-label="Chiudi"
             >
-              <ListChecks size={15} />
-              <span>Gioco in lista</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('event')}
-              className={`py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'event'
-                  ? 'bg-[#FFFFFF] text-[#1B4D3E] shadow-sm font-bold'
-                  : 'text-[#78716C] hover:text-[#1C1917]'
-              }`}
-            >
-              <CalendarClock size={15} />
-              <span>Pinna evento</span>
+              <X size={16} />
             </button>
           </div>
+        ) : (
+          <div className="flex items-center justify-between mb-4 shrink-0">
+            <h3 className="text-[17px] font-bold text-[#111111]">Modifica gioco</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[#F0F0F3] flex items-center justify-center text-[#6E6E73] hover:text-[#111111] shrink-0"
+              aria-label="Chiudi"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716C] hover:bg-[#EFECE4] hover:text-[#1C1917]"
-            aria-label="Chiudi"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Tab Gioco */}
+        {/* Form Gioco */}
         {activeTab === 'game' && (
-          <form onSubmit={handleCreateGame} className="p-4 overflow-y-auto space-y-4 pb-6">
+          <form onSubmit={handleCreateGame} className="overflow-y-auto space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[#57534E] mb-1">
-                Titolo del gioco *
+              <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
+                Titolo *
               </label>
               <input
                 type="text"
                 required
                 autoFocus
-                placeholder="Es. Brass Birmingham, Harmonies, Scout..."
+                placeholder="Es. Brass Birmingham, Harmonies..."
                 value={gameTitle}
                 onChange={(e) => setGameTitle(e.target.value)}
-                className="w-full h-11 px-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
+                className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#111111]/15"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#57534E] mb-1">
+              <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
                 Link BGG (opzionale)
               </label>
               <input
                 type="url"
-                placeholder="Incolla URL scheda BGG (o lascialo vuoto per ricerca automatica)"
+                placeholder="URL scheda BGG o vuoto per ricerca automatica"
                 value={bggUrl}
                 onChange={(e) => setBggUrl(e.target.value)}
-                className="w-full h-11 px-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E] placeholder:text-xs"
+                className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#111111]/15"
               />
-              <span className="text-[11px] text-[#78716C] mt-1 block">
-                Se vuoto, PlayCheck creerà automaticamente il link di ricerca diretta.
-              </span>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-[#57534E]">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[12px] font-semibold text-[#6E6E73]">
                   Chi lo propone
                 </label>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   {['Mio', 'Gruppo'].map((chip) => (
                     <button
                       key={chip}
                       type="button"
                       onClick={() => setRequestedBy(chip)}
-                      className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#EFECE4] text-[#78716C] hover:text-[#1C1917]"
+                      className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-[#F0F0F3] text-[#6E6E73] hover:text-[#111111]"
                     >
                       {chip}
                     </button>
@@ -188,16 +212,16 @@ export default function UniversalAddModal({
               </div>
               <input
                 type="text"
-                placeholder="Es. Marco, Elena, Circolo..."
+                placeholder="Es. Marco, Elena..."
                 value={requestedBy}
                 onChange={(e) => setRequestedBy(e.target.value)}
-                className="w-full h-11 px-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
+                className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#111111]/15"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#57534E] mb-1">
-                Peso / Complessità
+              <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
+                Peso
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -209,10 +233,10 @@ export default function UniversalAddModal({
                     key={w.id}
                     type="button"
                     onClick={() => setWeight(w.id)}
-                    className={`py-2 text-xs font-medium rounded-xl border transition-all text-center ${
+                    className={`h-10 rounded-xl text-[13px] font-medium transition-colors ${
                       weight === w.id
-                        ? 'bg-[#1B4D3E] text-white border-[#1B4D3E] font-semibold'
-                        : 'bg-[#FFFFFF] border-[#E4DFD3] text-[#78716C] hover:text-[#1C1917]'
+                        ? 'bg-[#111111] text-white'
+                        : 'bg-[#F5F5F7] text-[#6E6E73] hover:text-[#111111]'
                     }`}
                   >
                     {w.label}
@@ -221,58 +245,63 @@ export default function UniversalAddModal({
               </div>
             </div>
 
-            {/* Toggle Priorità Pin */}
-            <div 
+            <button
+              type="button"
               onClick={() => setGamePinned(!gamePinned)}
-              className="p-3 bg-[#FEF3C7]/60 border border-[#FDE68A] rounded-xl flex items-center justify-between cursor-pointer select-none"
+              className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 flex items-center justify-between"
             >
-              <div className="flex items-center gap-2">
-                <Pin size={16} className={gamePinned ? "fill-[#D97706] text-[#D97706]" : "text-[#78716C]"} />
-                <span className="text-xs font-medium text-[#92400E]">
-                  Metti subito in priorità in alto
-                </span>
-              </div>
-              <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${gamePinned ? 'bg-[#D97706] border-[#D97706] text-white font-bold' : 'border-[#DDD7C9] bg-white'}`}>
-                {gamePinned && '✓'}
-              </div>
-            </div>
+              <span className="flex items-center gap-2 text-[14px] font-medium text-[#111111]">
+                <Pin
+                  size={15}
+                  className={gamePinned ? 'fill-[#F59E0B] text-[#F59E0B]' : 'text-[#8E8E93]'}
+                />
+                <span>Metti in Priorità</span>
+              </span>
+              <span
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                  gamePinned ? 'bg-[#F59E0B] text-white' : 'bg-[#E5E5EA] text-transparent'
+                }`}
+              >
+                ✓
+              </span>
+            </button>
 
             <button
               type="submit"
-              className="w-full h-12 rounded-xl bg-[#1B4D3E] hover:bg-[#143A2F] text-white text-[15px] font-semibold active:scale-[0.98] transition-all shadow-sm"
+              className="w-full h-12 rounded-xl bg-[#111111] text-white text-[15px] font-semibold active:scale-[0.98] transition-transform"
             >
-              Salva in lista
+              {editingGame ? 'Salva modifiche' : 'Aggiungi in Lista'}
             </button>
           </form>
         )}
 
-        {/* Tab Evento */}
+        {/* Form Evento */}
         {activeTab === 'event' && (
-          <form onSubmit={handleCreateEvent} className="p-4 overflow-y-auto space-y-4 pb-6">
+          <form onSubmit={handleCreateEvent} className="overflow-y-auto space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[#57534E] mb-1">
-                Gioco della sessione *
+              <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
+                Gioco *
               </label>
               <input
                 type="text"
                 required
                 autoFocus
-                list="list-games-editorial"
-                placeholder="Scrivi o scegli un gioco..."
+                list="minimal-list-games"
+                placeholder="Scegli o scrivi il titolo..."
                 value={eventGameTitle}
                 onChange={(e) => setEventGameTitle(e.target.value)}
-                className="w-full h-11 px-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
+                className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#111111]/15"
               />
-              <datalist id="list-games-editorial">
-                {listGames.map(g => (
+              <datalist id="minimal-list-games">
+                {listGames.map((g) => (
                   <option key={g.id} value={g.title} />
                 ))}
               </datalist>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-xs font-medium text-[#57534E] mb-1">
+                <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
                   Data *
                 </label>
                 <input
@@ -280,12 +309,12 @@ export default function UniversalAddModal({
                   required
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  className="w-full h-11 px-2.5 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl font-mono text-base text-[#1C1917]"
+                  className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3 text-[#111111] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#57534E] mb-1">
+                <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
                   Ora *
                 </label>
                 <input
@@ -293,58 +322,63 @@ export default function UniversalAddModal({
                   required
                   value={eventTime}
                   onChange={(e) => setEventTime(e.target.value)}
-                  className="w-full h-11 px-2.5 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl font-mono text-base text-[#1C1917]"
+                  className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3 text-[#111111] focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#57534E] mb-1">
-                Luogo / Circolo / Casa
+              <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
+                Luogo
               </label>
               <input
                 type="text"
-                placeholder="Es. Casa Marco, Circolo Brecht, Pub..."
+                placeholder="Es. Casa Marco, Circolo..."
                 value={eventLocation}
                 onChange={(e) => setEventLocation(e.target.value)}
-                className="w-full h-11 px-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
+                className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#111111]/15"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#57534E] mb-1">
-                Note organizzative (opzionale)
+              <label className="block text-[12px] font-semibold text-[#6E6E73] mb-1.5">
+                Note (opzionale)
               </label>
               <input
                 type="text"
-                placeholder="Es. Portare playmat, spiegazione ore 20:45..."
+                placeholder="Es. Portare playmat..."
                 value={eventNotes}
                 onChange={(e) => setEventNotes(e.target.value)}
-                className="w-full h-11 px-3 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl text-base text-[#1C1917] focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
+                className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#111111]/15"
               />
             </div>
 
-            {/* Toggle Priorità in Agenda */}
-            <div 
+            <button
+              type="button"
               onClick={() => setEventPinned(!eventPinned)}
-              className="p-3 bg-[#FEF3C7]/60 border border-[#FDE68A] rounded-xl flex items-center justify-between cursor-pointer select-none"
+              className="w-full h-11 rounded-xl bg-[#F5F5F7] px-3.5 flex items-center justify-between"
             >
-              <div className="flex items-center gap-2">
-                <Pin size={16} className={eventPinned ? "fill-[#D97706] text-[#D97706]" : "text-[#78716C]"} />
-                <span className="text-xs font-medium text-[#92400E]">
-                  Metti in evidenza in agenda
-                </span>
-              </div>
-              <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${eventPinned ? 'bg-[#D97706] border-[#D97706] text-white font-bold' : 'border-[#DDD7C9] bg-white'}`}>
-                {eventPinned && '✓'}
-              </div>
-            </div>
+              <span className="flex items-center gap-2 text-[14px] font-medium text-[#111111]">
+                <Pin
+                  size={15}
+                  className={eventPinned ? 'fill-[#F59E0B] text-[#F59E0B]' : 'text-[#8E8E93]'}
+                />
+                <span>Metti in Priorità</span>
+              </span>
+              <span
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                  eventPinned ? 'bg-[#F59E0B] text-white' : 'bg-[#E5E5EA] text-transparent'
+                }`}
+              >
+                ✓
+              </span>
+            </button>
 
             <button
               type="submit"
-              className="w-full h-12 rounded-xl bg-[#1B4D3E] hover:bg-[#143A2F] text-white text-[15px] font-semibold active:scale-[0.98] transition-all shadow-sm"
+              className="w-full h-12 rounded-xl bg-[#111111] text-white text-[15px] font-semibold active:scale-[0.98] transition-transform"
             >
-              Pinna sul calendario
+              Pinna sul Calendario
             </button>
           </form>
         )}

@@ -1,85 +1,80 @@
 import React from 'react';
 import { X, Calendar as CalendarIcon, Clock, MapPin, Pin, Trash2, Share2 } from 'lucide-react';
 
-export default function EventDetailSheet({ 
-  isOpen, 
-  onClose, 
-  event, 
-  onTogglePin, 
-  onDeleteEvent 
+export default function EventDetailSheet({
+  isOpen,
+  onClose,
+  event,
+  onTogglePin,
+  onDeleteEvent,
 }) {
   if (!isOpen || !event) return null;
 
   const handleShareWhatsApp = () => {
-    const text = `🎲 *Partita a ${event.gameTitle}*\n📅 Data: *${event.date}* alle ${event.time || '21:00'}\n📍 Luogo: *${event.location || 'Tavolo da gioco'}*${event.notes ? `\n📝 "${event.notes}"` : ''}\n\nConfermate la presenza! 🌲`;
+    const text = `🎲 *${event.gameTitle}*\n📅 ${event.date} · ${event.time || '21:00'}\n📍 ${event.location || 'Tavolo da gioco'}${event.notes ? `\n📝 ${event.notes}` : ''}`;
     navigator.clipboard?.writeText(text);
-    alert('Dettagli partita copiati negli appunti per WhatsApp!');
+    alert('Dettagli partita copiati per WhatsApp.');
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 backdrop-blur-[2px] animate-fadeIn"
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
       onClick={onClose}
     >
-      <div 
-        className="w-full max-w-md bg-[#FFFFFF] rounded-t-3xl shadow-[0_-8px_24px_rgba(28,25,23,0.08)] p-4 space-y-4"
+      <div
+        className="fixed inset-x-0 bottom-0 max-w-[430px] mx-auto bg-white rounded-t-3xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl z-50"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-10 h-1 bg-[#D6D1C4] mx-auto rounded-full -mt-1 mb-1" />
+        <div className="w-10 h-1 bg-[#D1D1D6] mx-auto rounded-full mb-4" />
 
-        <div className="flex items-start justify-between pb-3 border-b border-[#E4DFD3]">
-          <div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#78716C] block">
-              Sessione programmata
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0 flex-1">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8E8E93] block">
+              Evento
             </span>
-            <h3 className="font-serif text-[20px] font-bold text-[#1C1917] truncate max-w-[270px]">
+            <h3 className="text-[18px] font-bold text-[#111111] truncate mt-0.5">
               {event.gameTitle}
             </h3>
           </div>
 
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716C] hover:bg-[#EFECE4] hover:text-[#1C1917]"
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-[#F0F0F3] flex items-center justify-center text-[#6E6E73] hover:text-[#111111] shrink-0"
             aria-label="Chiudi"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Dettagli Logistica */}
-        <div className="space-y-2 text-sm bg-[#F6F4EF] p-3.5 rounded-2xl border border-[#E4DFD3]">
-          <div className="flex items-center gap-2 text-[#1C1917]">
-            <CalendarIcon size={16} className="text-[#1B4D3E]" />
-            <span className="font-semibold">{event.date}</span>
+        <div className="bg-[#F5F5F7] rounded-2xl p-4 space-y-2.5 text-[14px] text-[#111111] mb-4">
+          <div className="flex items-center gap-2.5">
+            <CalendarIcon size={16} className="text-[#6E6E73] shrink-0" />
+            <span className="font-medium">{event.date}</span>
           </div>
-
-          <div className="flex items-center gap-2 text-[#1C1917]">
-            <Clock size={16} className="text-[#78716C]" />
-            <span>Ora: <b>{event.time || '21:00'}</b></span>
+          <div className="flex items-center gap-2.5">
+            <Clock size={16} className="text-[#6E6E73] shrink-0" />
+            <span>{event.time || '21:00'}</span>
           </div>
-
-          <div className="flex items-center gap-2 text-[#1C1917]">
-            <MapPin size={16} className="text-[#78716C]" />
-            <span>Luogo: <b>{event.location || 'Tavolo da gioco'}</b></span>
+          <div className="flex items-center gap-2.5">
+            <MapPin size={16} className="text-[#6E6E73] shrink-0" />
+            <span>{event.location || 'Tavolo da gioco'}</span>
           </div>
-
           {event.notes && (
-            <div className="pt-2 border-t border-[#E4DFD3] text-xs text-[#78716C] italic">
-              "{event.notes}"
-            </div>
+            <p className="pt-2 border-t border-black/[0.06] text-[13px] text-[#6E6E73]">
+              {event.notes}
+            </p>
           )}
         </div>
 
-        {/* Azioni */}
-        <div className="space-y-2 pt-1">
+        <div className="space-y-2.5">
           <button
             type="button"
             onClick={handleShareWhatsApp}
-            className="w-full h-11 rounded-xl bg-[#EFECE4] hover:bg-[#E4DFD3] text-[#1C1917] text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+            className="w-full h-11 rounded-xl bg-[#111111] text-white text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Share2 size={15} className="text-[#1B4D3E]" />
-            <span>Condividi su WhatsApp</span>
+            <Share2 size={15} />
+            <span>Copia per WhatsApp</span>
           </button>
 
           <div className="grid grid-cols-2 gap-2">
@@ -89,21 +84,24 @@ export default function EventDetailSheet({
                 onTogglePin(event.id);
                 onClose();
               }}
-              className="h-11 rounded-xl border border-[#E4DFD3] bg-[#FFFFFF] hover:bg-[#F6F4EF] text-[#1C1917] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="h-11 rounded-xl bg-[#F0F0F3] text-[#111111] text-[13px] font-medium flex items-center justify-center gap-1.5 hover:bg-[#E5E5EA] transition-colors"
             >
-              <Pin size={14} className={event.pinned ? "fill-[#D97706] text-[#D97706]" : "text-[#78716C]"} />
-              <span>{event.pinned ? 'Togli pin' : 'Metti pin'}</span>
+              <Pin
+                size={14}
+                className={event.pinned ? 'fill-[#F59E0B] text-[#F59E0B]' : 'text-[#6E6E73]'}
+              />
+              <span>{event.pinned ? 'Togli Pin' : 'Priorità'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('Eliminare questo appuntamento dall\'agenda?')) {
+                if (window.confirm('Eliminare questo evento?')) {
                   onDeleteEvent(event.id);
                   onClose();
                 }
               }}
-              className="h-11 rounded-xl border border-[#FEE2E2] bg-[#FFFFFF] hover:bg-[#FEE2E2] text-[#DC2626] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="h-11 rounded-xl bg-[#F0F0F3] text-[#EF4444] text-[13px] font-medium flex items-center justify-center gap-1.5 hover:bg-[#EF4444]/10 transition-colors"
             >
               <Trash2 size={14} />
               <span>Elimina</span>

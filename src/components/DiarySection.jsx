@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { Search, X, Star, ExternalLink, RotateCcw } from 'lucide-react';
-import { getBggLink, RATING_LABELS } from '../utils/storage';
+import { Search, X, Star, ExternalLink } from 'lucide-react';
+import { getBggLink } from '../utils/storage';
 
-export default function DiarySection({ 
-  games, 
-  onOpenReviewSheet, 
-  onRestoreToList 
+export default function DiarySection({
+  games,
+  onOpenReviewSheet,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const playedGames = games.filter(g => g.status === 'played').sort((a, b) => {
-    const dateA = a.playedAt || a.createdAt;
-    const dateB = b.playedAt || b.createdAt;
-    return new Date(dateB) - new Date(dateA);
-  });
+  const playedGames = games
+    .filter((g) => g.status === 'played')
+    .sort((a, b) => {
+      const dateA = a.playedAt || a.createdAt;
+      const dateB = b.playedAt || b.createdAt;
+      return new Date(dateB) - new Date(dateA);
+    });
 
-  const filteredGames = playedGames.filter(g => {
+  const filteredGames = playedGames.filter((g) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     return (
@@ -25,139 +26,99 @@ export default function DiarySection({
   });
 
   return (
-    <div className="space-y-4 animate-fadeIn">
-      {/* Intestazione Sezione Editoriale */}
-      <div className="text-center pt-2">
-        <h2 className="font-serif text-[26px] font-bold text-[#1C1917] tracking-tight">
-          Diario
-        </h2>
-        <p className="text-[13px] text-[#78716C] mt-0.5">
-          I tuoi giochi provati, voti personali e recensioni
-        </p>
-      </div>
-
-      {/* Barra di Ricerca */}
-      <div className="relative w-full">
-        <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#78716C] pointer-events-none" />
+    <div className="pt-2">
+      {/* Barra Ricerca */}
+      <div className="w-full h-11 rounded-xl bg-white border border-black/[0.07] px-3.5 flex items-center gap-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
+        <Search size={17} className="text-[#AEAEB2] shrink-0" />
         <input
           type="text"
-          placeholder="Cerca tra i giochi provati o recensioni..."
+          placeholder="Cerca tra i giochi provati..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-12 pl-10 pr-10 bg-[#FFFFFF] border border-[#DDD7C9] rounded-xl shadow-[0_2px_6px_rgba(28,25,23,0.03)] text-base text-[#1C1917] placeholder:text-[#78716C]/60 focus:outline-none focus:ring-1.5 focus:ring-[#1B4D3E]"
+          className="w-full bg-transparent text-[#111111] placeholder:text-[#AEAEB2] focus:outline-none"
         />
         {searchQuery && (
-          <button 
+          <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-[#78716C] hover:text-[#1C1917]"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[#8E8E93] hover:text-[#111111] shrink-0"
             aria-label="Pulisci ricerca"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         )}
       </div>
 
-      <div className="flex items-center justify-between px-1 text-xs text-[#78716C]">
-        <span>Giochi provati: <b className="text-[#1C1917]">{playedGames.length}</b></span>
-        <span>Tocca per modificare recensione</span>
-      </div>
-
-      {/* Schede Giochi Provati nel Diario */}
+      {/* Lista Giochi Provati */}
       {filteredGames.length === 0 ? (
-        <div className="py-12 text-center bg-[#FFFFFF] border border-[#E4DFD3] rounded-2xl shadow-[0_2px_8px_rgba(28,25,23,0.04)] p-6 space-y-3">
-          <p className="text-[15px] font-medium text-[#1C1917]">
-            Il diario è ancora vuoto
+        <div className="bg-white rounded-2xl p-6 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] text-center">
+          <p className="text-[15px] font-semibold text-[#111111]">
+            Nessun gioco nel diario
           </p>
-          <p className="text-xs text-[#78716C] max-w-xs mx-auto">
-            {searchQuery 
-              ? `Nessun risultato per "${searchQuery}".` 
-              : 'Quando intavoli e provi un gioco dalla tua Lista, spunta la casella rotonda e comparirà qui con voto a stelle e appunti!'}
+          <p className="text-[13px] text-[#6E6E73] mt-1">
+            {searchQuery
+              ? `Nessun risultato per "${searchQuery}".`
+              : 'Spunta la checkbox di un gioco nella Lista quando lo provi per aggiungerlo qui.'}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredGames.map(game => (
+        <div className="space-y-2.5">
+          {filteredGames.map((game) => (
             <div
               key={game.id}
               onClick={() => onOpenReviewSheet(game)}
-              className="bg-[#FFFFFF] border border-[#E4DFD3] rounded-2xl shadow-[0_2px_8px_rgba(28,25,23,0.04)] p-4 space-y-2.5 cursor-pointer select-none active:scale-[0.99] transition-transform"
+              className="bg-white rounded-2xl p-4 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] cursor-pointer active:scale-[0.99] transition-transform"
             >
-              {/* Header scheda diario: Titolo + Stelle */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h4 className="text-[16px] font-semibold text-[#1C1917] leading-snug truncate">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-[15px] font-semibold text-[#111111] leading-snug truncate">
                     {game.title}
                   </h4>
-                  <div className="flex items-center gap-2 text-[12px] text-[#78716C] mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 text-[12px] text-[#6E6E73]">
                     {game.playedAt && (
-                      <span>Provato il {new Date(game.playedAt).toLocaleDateString('it-IT')}</span>
+                      <span className="shrink-0">
+                        {new Date(game.playedAt).toLocaleDateString('it-IT')}
+                      </span>
                     )}
-                    <span>·</span>
+                    <span className="text-[#AEAEB2]">·</span>
                     <a
                       href={getBggLink(game.title, game.bggUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[#1B4D3E] font-medium hover:underline inline-flex items-center gap-0.5"
+                      className="font-medium text-[#111111] hover:underline inline-flex items-center gap-0.5 shrink-0"
                     >
                       <span>BGG</span>
-                      <ExternalLink size={9} />
+                      <ExternalLink size={10} />
                     </a>
                   </div>
                 </div>
 
-                {/* Valutazione a Stelle Ambra */}
-                <div className="flex items-center gap-0.5 shrink-0 bg-[#FEF3C7] rounded-lg px-2 py-1 border border-[#FDE68A]">
+                {/* Stelle 1-5 */}
+                <div className="flex items-center gap-0.5 shrink-0 pt-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
                       size={14}
                       className={
                         s <= (game.rating || 0)
-                          ? 'fill-[#D97706] text-[#D97706]'
-                          : 'fill-[#E4DFD3] text-[#E4DFD3]'
+                          ? 'fill-[#F59E0B] text-[#F59E0B]'
+                          : 'fill-[#E5E5EA] text-[#E5E5EA]'
                       }
                     />
                   ))}
                 </div>
               </div>
 
-              {/* Anteprima Recensione o Invito */}
               {game.reviewText ? (
-                <div className="p-3 rounded-xl bg-[#F6F4EF] text-[13px] text-[#1C1917] leading-relaxed line-clamp-3 italic">
-                  "{game.reviewText}"
-                </div>
+                <p className="mt-2.5 text-[13px] text-[#6E6E73] leading-relaxed line-clamp-2">
+                  {game.reviewText}
+                </p>
               ) : (
-                <div className="py-2 px-3 rounded-xl bg-[#F6F4EF] text-xs font-medium text-[#78716C] flex items-center justify-between">
-                  <span>Nessuna recensione scritta</span>
-                  <span className="text-[#1B4D3E] font-semibold hover:underline">
-                    Scrivi recensione →
-                  </span>
-                </div>
+                <p className="mt-2.5 text-[13px] text-[#AEAEB2]">
+                  Tocca per scrivere una recensione
+                </p>
               )}
-
-              {/* Footer Scheda */}
-              <div className="flex items-center justify-between pt-1 border-t border-[#EFECE4] text-xs">
-                <span className="font-medium text-[#1C1917]">
-                  {game.rating > 0 ? RATING_LABELS[game.rating] : 'Non valutato'}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Rimetti "${game.title}" nella Lista da provare?`)) {
-                      onRestoreToList(game.id);
-                    }
-                  }}
-                  className="text-[#78716C] hover:text-[#DC2626] flex items-center gap-1 text-[11px] font-medium transition-colors"
-                  title="Rimetti nella lista da provare"
-                >
-                  <RotateCcw size={12} />
-                  <span>Rimetti in Lista</span>
-                </button>
-              </div>
             </div>
           ))}
         </div>
